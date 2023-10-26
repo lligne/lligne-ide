@@ -19,7 +19,7 @@ export type Outcome = {
 //=====================================================================================================================
 
 // Converts the given source code to an array of tokens plus an array of new line character offsets.
-export function Scan(sourceCode: string): Outcome {
+export function scan(sourceCode: string): Outcome {
 
     // Create a scanner.
     const scanner = new Scanner(sourceCode)

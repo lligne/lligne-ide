@@ -19,7 +19,7 @@ export type Outcome = {
 
 //=====================================================================================================================
 
-export function ParseExpression(scanResult: PriorOutcome): Outcome {
+export function parseExpression(scanResult: PriorOutcome): Outcome {
     const parser = new Parser(scanResult)
 
     const model = parser.parseExprBindingPower(0)
@@ -103,6 +103,15 @@ class Parser {
         }
 
         return lhs
+    }
+
+    #getBackTickedStringValue(sourcePos: SourcePos) {
+        const lines = sourcePos.GetText(this.sourceCode).split('\n')
+        let value = ""
+        for (let line of lines) {
+            value += line.substring(line.indexOf("`")+1).trimEnd()
+        }
+        return value
     }
 
     #getQuotedStringValue(sourcePos: SourcePos) {
@@ -268,7 +277,7 @@ class Parser {
                 return {
                     tag: 'Expr#BackTickedMultilineString',
                     sourcePos,
-                    value: "TBD"
+                    value: this.#getBackTickedStringValue(sourcePos)
                 }
 
             case 'TokenType#Boolean':

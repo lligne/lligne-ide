@@ -1,7 +1,7 @@
 import {describe, it, expect} from 'vitest';
 import type {Token} from "../../../../../src/lib/lligne/code/scanning/Token";
 import type {TokenType} from "../../../../../src/lib/lligne/code/scanning/TokenType";
-import {Scan} from "../../../../../src/lib/lligne/code/scanning/Scanner";
+import {scan} from "../../../../../src/lib/lligne/code/scanning/Scanner";
 import {
     filterLeadingTrailingDocumentation
 } from "../../../../../src/lib/lligne/code/scanning/tokenfiltering/LeadingTrailingDocumentationFilter";
@@ -33,7 +33,7 @@ stuff {
 	junk
 }
 `
-        let scanOutcome = Scan(sourceCode)
+        let scanOutcome = scan(sourceCode)
         scanOutcome = filterLeadingTrailingDocumentation(scanOutcome)
         const tokens = scanOutcome.Tokens
 

@@ -1,6 +1,6 @@
 import {describe, it, expect} from 'vitest';
 import type {TokenType} from "../../../../src/lib/lligne/code/scanning/TokenType";
-import {Scan} from "../../../../src/lib/lligne/code/scanning/Scanner";
+import {scan} from "../../../../src/lib/lligne/code/scanning/Scanner";
 import type {Token} from "../../../../src/lib/lligne/code/scanning/Token";
 
 
@@ -13,14 +13,14 @@ describe('Scanner test', () => {
     }
 
     it("scans an empty string", () => {
-        const result = Scan("")
+        const result = scan("")
 
         expectToken(result.Tokens[0], 'TokenType#Eof', 0, 0)
         expect(result.NewLineOffsets.length).toBe(0)
     })
 
     it("scans an unrecognized character", () => {
-        const result = Scan("‽")
+        const result = scan("‽")
 
         expectToken(result.Tokens[0], 'TokenType#UnrecognizedChar', 0, 1)
         expectToken(result.Tokens[1], 'TokenType#Eof', 1, 0)
@@ -28,7 +28,7 @@ describe('Scanner test', () => {
     })
 
     it("scans a few punctuation tokens", () => {
-        const result = Scan(
+        const result = scan(
             "& &&\n *: , ",
         )
 
@@ -42,7 +42,7 @@ describe('Scanner test', () => {
     })
 
     it("scans a few identifier tokens", () => {
-        const result = Scan(
+        const result = scan(
             "a bb c23_f q-code _dfg",
         )
 
@@ -56,7 +56,7 @@ describe('Scanner test', () => {
     })
 
     it("scans a few integers", () => {
-        const result = Scan(
+        const result = scan(
             "123 4\n(99000) 5",
         )
 
@@ -71,7 +71,7 @@ describe('Scanner test', () => {
     })
 
     it("scans a few numbers", () => {
-        const result = Scan(
+        const result = scan(
             "12.3 4\n(990.00) 5.1",
         )
 
@@ -86,7 +86,7 @@ describe('Scanner test', () => {
     })
 
     it("scans a few double quoted strings", () => {
-        const result = Scan(
+        const result = scan(
             `"abc" "xyz" "bad
  "start over"`,
         )
@@ -100,7 +100,7 @@ describe('Scanner test', () => {
     })
 
     it("scans a few single quoted strings", () => {
-        const result = Scan(
+        const result = scan(
             `'abc' 'xyz' 'bad
  'start over'`,
         )
@@ -114,7 +114,7 @@ describe('Scanner test', () => {
     })
 
     it("scans a few back-ticked string lines", () => {
-        const result = Scan(
+        const result = scan(
             "`abc 123\n`  - one\n  `  - two\n\n  `another\n\n  `one more\n `and the end",
         )
 
@@ -126,7 +126,7 @@ describe('Scanner test', () => {
     })
 
     it("scans a few documentation lines", () => {
-        const result = Scan(
+        const result = scan(
             "// abc 123\n//  - one\n//two\n\n//\n//",
         )
 
@@ -137,7 +137,7 @@ describe('Scanner test', () => {
     })
 
     it("scans boolean literals", () => {
-        const result = Scan(
+        const result = scan(
             "true false",
         )
 
@@ -148,7 +148,7 @@ describe('Scanner test', () => {
     })
 
     it("scans built in types", () => {
-        const result = Scan(
+        const result = scan(
             "Boolean Float64 Int64 String",
         )
 

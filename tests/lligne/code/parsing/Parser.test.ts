@@ -1,18 +1,18 @@
 import {describe, it, expect} from 'vitest';
-import {Scan} from "../../../../src/lib/lligne/code/scanning/Scanner";
+import {scan} from "../../../../src/lib/lligne/code/scanning/Scanner";
 import {
     filterLeadingTrailingDocumentation
 } from "../../../../src/lib/lligne/code/scanning/tokenfiltering/LeadingTrailingDocumentationFilter";
-import {ParseExpression} from "../../../../src/lib/lligne/code/parsing/Parser";
+import {parseExpression} from "../../../../src/lib/lligne/code/parsing/Parser";
 
 
 describe('Parser test', () => {
     const check = function(sourceCode: string) {
-        let scanResult = Scan(sourceCode)
+        let scanResult = scan(sourceCode)
 
         scanResult = filterLeadingTrailingDocumentation(scanResult)
 
-        const parseResult = ParseExpression(scanResult)
+        const parseResult = parseExpression(scanResult)
 
         expect(parseResult.Model.sourcePos.GetText(sourceCode).length).toBeGreaterThan(0)
     }
