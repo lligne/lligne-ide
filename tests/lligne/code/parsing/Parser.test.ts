@@ -14,7 +14,7 @@ describe('Parser test', () => {
 
         const parseResult = parseExpression(scanResult)
 
-        expect(parseResult.Model.sourcePos.GetText(sourceCode).length).toBeGreaterThan(0)
+        expect(parseResult.Model.sourcePos.getText(sourceCode).length).toBeGreaterThan(0)
     }
 
     it("parses identifier literals", () => {

@@ -7,7 +7,7 @@ import type {SourcePos} from "../util/SourcePos";
 
 //=====================================================================================================================
 
-export type BinaryOperatorType =
+export type BinaryOperationExprTag =
     | 'Expr#Addition'
     | 'Expr#Division'
     | 'Expr#Document'
@@ -41,7 +41,13 @@ export type BinaryOperatorType =
 
 //=====================================================================================================================
 
-export type BuiltInType =
+export type BooleanLiteralExprTag =
+    | 'Expr#BooleanLiteral'
+    ;
+
+//=====================================================================================================================
+
+export type BuiltInTypeExprTag =
     | 'Expr#Boolean'
     | 'Expr#Int64'
     | 'Expr#Float64'
@@ -50,23 +56,52 @@ export type BuiltInType =
 
 //=====================================================================================================================
 
-export type CompositeType =
-    | 'Expr#ArrayLiteral'
+export type CompositeExprTag =
     | 'Expr#FunctionArguments'
     | 'Expr#Record'
-;
+    ;
 
 //=====================================================================================================================
 
-export type DocumentationType =
+export type DocumentationExprTag =
     | 'Expr#LeadingDocumentation'
     | 'Expr#TrailingDocumentation'
-;
+    ;
 
 //=====================================================================================================================
 
-// StringType is an enumeration of start/stop delimiters for string literal expressions.
-export type StringType =
+export type EmptyExprTag =
+    | 'Expr#Empty'
+    ;
+
+//=====================================================================================================================
+
+export type Float64LiteralExprTag =
+    | 'Expr#Float64Literal'
+    ;
+
+//=====================================================================================================================
+
+export type IdentifierExprTag =
+    | 'Expr#Identifier'
+    ;
+
+//=====================================================================================================================
+
+export type Int64LiteralExprTag =
+    | 'Expr#Int64Literal'
+    ;
+
+//=====================================================================================================================
+
+export type SequenceExprTag =
+    | 'Expr#ArrayLiteral'
+    ;
+
+//=====================================================================================================================
+
+// String literals distinguished by start/stop delimiters.
+export type StringLiteralExprTag =
     | 'Expr#SingleQuotedString'
     | 'Expr#DoubleQuotedString'
     | 'Expr#BackTickedString'
@@ -77,7 +112,7 @@ export type StringType =
 
 //=====================================================================================================================
 
-export type UnaryOperatorType =
+export type UnaryOperationExprTag =
     | 'Expr#LogicalNot'
     | 'Expr#Negation'
     | 'Expr#Optional'
@@ -86,18 +121,9 @@ export type UnaryOperatorType =
 
 //=====================================================================================================================
 
-export type BinaryOperationExpr = {
-    tag: BinaryOperatorType,
-    sourcePos: SourcePos,
-    lhs: Expr,
-    rhs: Expr
-}
-
-//=====================================================================================================================
-
 // BooleanLiteralExpr represents a single boolean literal.
 export type BooleanLiteralExpr = {
-    tag: 'Expr#BooleanLiteral',
+    tag: BooleanLiteralExprTag,
     sourcePos: SourcePos,
     value: boolean
 }
@@ -106,32 +132,31 @@ export type BooleanLiteralExpr = {
 
 // BuiltInTypeExpr represents a single fundamental type name.
 export type BuiltInTypeExpr = {
-    tag: BuiltInType,
+    tag: BuiltInTypeExprTag,
     sourcePos: SourcePos
-}
-
-//=====================================================================================================================
-
-export type CompositeExpr = {
-    tag: CompositeType,
-    sourcePos: SourcePos,
-    items: Expr[]
 }
 
 //=====================================================================================================================
 
 // DocumentationExpr represents a leading or trailing documentation comment.
 export type DocumentationExpr = {
-    tag: DocumentationType,
+    tag: DocumentationExprTag,
     sourcePos: SourcePos,
     text: string
 }
 
 //=====================================================================================================================
 
+export type EmptyExpr = {
+    tag: EmptyExprTag,
+    sourcePos: SourcePos
+}
+
+//=====================================================================================================================
+
 // Float64LiteralExpr represents a single floating point literal.
 export type Float64LiteralExpr = {
-    tag: 'Expr#Float64Literal',
+    tag: Float64LiteralExprTag,
     sourcePos: SourcePos,
     value: number
 }
@@ -140,58 +165,49 @@ export type Float64LiteralExpr = {
 
 // IdentifierExpr represents a single identifier.
 export type IdentifierExpr = {
-    tag: 'Expr#Identifier',
+    tag: IdentifierExprTag,
     sourcePos: SourcePos,
-    text: string
+    name: string
 }
 
 //=====================================================================================================================
 
 // Int64LiteralExpr represents a single integer literal.
 export type Int64LiteralExpr = {
-    tag: 'Expr#Int64Literal',
+    tag: Int64LiteralExprTag,
     sourcePos: SourcePos,
     value: number
 }
 
 //=====================================================================================================================
 
-// StringLiteralExpr represents a single textt literal.
+// OperationExpr is a generic operation involving one or more operands.
+export type OperationExpr = {
+    tag: BinaryOperationExprTag | CompositeExprTag | SequenceExprTag | UnaryOperationExprTag,
+    sourcePos: SourcePos,
+    operands: Expr[]
+}
+
+//=====================================================================================================================
+
+// StringLiteralExpr represents a single text literal.
 export type StringLiteralExpr = {
-    tag: StringType,
+    tag: StringLiteralExprTag,
     sourcePos: SourcePos,
     value: string
 }
 
 //=====================================================================================================================
-
-export type UnaryOperationExpr = {
-    tag: UnaryOperatorType,
-    sourcePos: SourcePos,
-    operand: Expr
-}
-
-//=====================================================================================================================
-
-export type UnitExpr = {
-    tag: 'Expr#Unit',
-    sourcePos: SourcePos
-}
-
-//=====================================================================================================================
-
 export type Expr =
-    | BinaryOperationExpr
     | BooleanLiteralExpr
     | BuiltInTypeExpr
-    | CompositeExpr
     | DocumentationExpr
+    | EmptyExpr
     | Float64LiteralExpr
     | IdentifierExpr
     | Int64LiteralExpr
+    | OperationExpr
     | StringLiteralExpr
-    | UnaryOperationExpr
-    | UnitExpr
     ;
 
 //=====================================================================================================================

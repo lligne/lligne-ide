@@ -27,7 +27,7 @@
 
   let parseMsg = ""
 
-  function parse_from_repl2(){
+  function parse_from_repl(){
     let sourceCode = editorView.state.doc.toString()
     console.log("Source: ", sourceCode)
 
@@ -45,7 +45,7 @@
 
   <h2>REPL:</h2>
   <div id="repl-box"></div>
-  <button on:click={parse_from_repl2}>Parse</button>
+  <button on:click={parse_from_repl}>Parse</button>
   <p>{parseMsg}</p>
 
 </div>

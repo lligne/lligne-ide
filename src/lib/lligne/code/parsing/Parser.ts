@@ -106,7 +106,7 @@ class Parser {
     }
 
     #getBackTickedStringValue(sourcePos: SourcePos) {
-        const lines = sourcePos.GetText(this.sourceCode).split('\n')
+        const lines = sourcePos.getText(this.sourceCode).split('\n')
         let value = ""
         for (let line of lines) {
             value += line.substring(line.indexOf("`")+1).trimEnd()
@@ -115,7 +115,7 @@ class Parser {
     }
 
     #getQuotedStringValue(sourcePos: SourcePos) {
-        let value = sourcePos.GetText(this.sourceCode)
+        let value = sourcePos.getText(this.sourceCode)
         value = value.substring(1, value.length - 1)
         // TODO: convert escape sequences
         return value
@@ -124,21 +124,21 @@ class Parser {
     #parseArrayLiteral(token: Token): Expr {
 
         const startSourcePos = SourcePos.fromToken(token)
-        const items: Expr[] = []
+        const operands: Expr[] = []
 
         if (this.tokens[this.index].tokenType == 'TokenType#RightBracket') {
             const endSourcePos = SourcePos.fromToken(this.tokens[this.index])
             this.index += 1
             return {
                 tag: 'Expr#ArrayLiteral',
-                sourcePos: startSourcePos.Thru(endSourcePos),
-                items
+                sourcePos: startSourcePos.thru(endSourcePos),
+                operands
             }
         }
 
         while (this.tokens[this.index].tokenType != 'TokenType#RightBracket') {
             // Parse one expression.
-            items.push(this.parseExprBindingPower(0))
+            operands.push(this.parseExprBindingPower(0))
 
             if (this.tokens[this.index].tokenType != 'TokenType#Comma') {
                 break
@@ -149,13 +149,14 @@ class Parser {
         if (this.tokens[this.index].tokenType != 'TokenType#RightBracket') {
             throw Error("Expected right bracket.")
         }
+
         const endSourcePos = SourcePos.fromToken(this.tokens[this.index])
         this.index += 1
 
         return {
             tag: 'Expr#ArrayLiteral',
-            sourcePos: startSourcePos.Thru(endSourcePos),
-            items
+            sourcePos: startSourcePos.thru(endSourcePos),
+            operands
         }
 
     }
@@ -164,11 +165,11 @@ class Parser {
         token: Token,
     ): Expr {
 
-        var items: Expr[] = []
+        const operands: Expr[] = []
 
         while (this.tokens[this.index].tokenType != 'TokenType#RightParenthesis') {
             // Parse one expression.
-            items.push(this.parseExprBindingPower(0))
+            operands.push(this.parseExprBindingPower(0))
 
             if (this.tokens[this.index].tokenType != 'TokenType#Comma') {
                 break
@@ -179,13 +180,14 @@ class Parser {
         if (this.tokens[this.index].tokenType != 'TokenType#RightParenthesis') {
             throw Error("Expected right parenthesis.")
         }
+
         const endSourcePos = SourcePos.fromToken(this.tokens[this.index])
         this.index += 1
 
         return {
             tag: 'Expr#FunctionArguments',
-            sourcePos: SourcePos.fromToken(token).Thru(endSourcePos),
-            items
+            sourcePos: SourcePos.fromToken(token).thru(endSourcePos),
+            operands
         }
 
     }
@@ -197,66 +199,66 @@ class Parser {
         lhs: Expr
     ): Expr {
         const rhs = this.parseExprBindingPower(bindingPower.right)
-        const sourcePos = lhs.sourcePos.Thru(rhs.sourcePos)
+        const sourcePos = lhs.sourcePos.thru(rhs.sourcePos)
 
         switch (opToken.tokenType) {
 
             case 'TokenType#Ampersand':
-                return {tag: 'Expr#Intersect', sourcePos, lhs, rhs}
+                return {tag: 'Expr#Intersect', sourcePos, operands: [lhs, rhs]}
             case 'TokenType#AmpersandAmpersand':
-                return {tag: 'Expr#IntersectLowPrecedence', sourcePos, lhs, rhs}
+                return {tag: 'Expr#IntersectLowPrecedence', sourcePos, operands: [lhs, rhs]}
             case 'TokenType#And':
-                return {tag: 'Expr#LogicalAnd', sourcePos, lhs, rhs}
+                return {tag: 'Expr#LogicalAnd', sourcePos, operands: [lhs, rhs]}
             case 'TokenType#Asterisk':
-                return {tag: 'Expr#Multiplication', sourcePos, lhs, rhs}
+                return {tag: 'Expr#Multiplication', sourcePos, operands: [lhs, rhs]}
             case 'TokenType#Colon':
-                return {tag: 'Expr#Qualification', sourcePos, lhs, rhs}
+                return {tag: 'Expr#Qualification', sourcePos, operands: [lhs, rhs]}
             case 'TokenType#Dash':
-                return {tag: 'Expr#Subtraction', sourcePos, lhs, rhs}
+                return {tag: 'Expr#Subtraction', sourcePos, operands: [lhs, rhs]}
             case 'TokenType#Dot':
-                return {tag: 'Expr#FieldReference', sourcePos, lhs, rhs}
+                return {tag: 'Expr#FieldReference', sourcePos, operands: [lhs, rhs]}
             case 'TokenType#DotDot':
-                return {tag: 'Expr#Range', sourcePos, lhs, rhs}
+                return {tag: 'Expr#Range', sourcePos, operands: [lhs, rhs]}
             case 'TokenType#Equals':
-                return {tag: 'Expr#IntersectAssignValue', sourcePos, lhs, rhs}
+                return {tag: 'Expr#IntersectAssignValue', sourcePos, operands: [lhs, rhs]}
             case 'TokenType#EqualsEquals':
-                return {tag: 'Expr#Equals', sourcePos, lhs, rhs}
+                return {tag: 'Expr#Equals', sourcePos, operands: [lhs, rhs]}
             case 'TokenType#EqualsTilde':
-                return {tag: 'Expr#Match', sourcePos, lhs, rhs}
+                return {tag: 'Expr#Match', sourcePos, operands: [lhs, rhs]}
             case 'TokenType#ExclamationEquals':
-                return {tag: 'Expr#NotEquals', sourcePos, lhs, rhs}
+                return {tag: 'Expr#NotEquals', sourcePos, operands: [lhs, rhs]}
             case 'TokenType#ExclamationTilde':
-                return {tag: 'Expr#NotMatch', sourcePos, lhs, rhs}
+                return {tag: 'Expr#NotMatch', sourcePos, operands: [lhs, rhs]}
             case 'TokenType#GreaterThan':
-                return {tag: 'Expr#GreaterThan', sourcePos, lhs, rhs}
+                return {tag: 'Expr#GreaterThan', sourcePos, operands: [lhs, rhs]}
             case 'TokenType#GreaterThanOrEquals':
-                return {tag: 'Expr#GreaterThanOrEquals', sourcePos, lhs, rhs}
+                return {tag: 'Expr#GreaterThanOrEquals', sourcePos, operands: [lhs, rhs]}
             case 'TokenType#In':
-                return {tag: 'Expr#In', sourcePos, lhs, rhs}
+                return {tag: 'Expr#In', sourcePos, operands: [lhs, rhs]}
             case 'TokenType#Is':
-                return {tag: 'Expr#Is', sourcePos, lhs, rhs}
+                return {tag: 'Expr#Is', sourcePos, operands: [lhs, rhs]}
             case 'TokenType#LessThan':
-                return {tag: 'Expr#LessThan', sourcePos, lhs, rhs}
+                return {tag: 'Expr#LessThan', sourcePos, operands: [lhs, rhs]}
             case 'TokenType#LessThanOrEquals':
-                return {tag: 'Expr#LessThanOrEquals', sourcePos, lhs, rhs}
+                return {tag: 'Expr#LessThanOrEquals', sourcePos, operands: [lhs, rhs]}
             case 'TokenType#Or':
-                return {tag: 'Expr#LogicalOr', sourcePos, lhs, rhs}
+                return {tag: 'Expr#LogicalOr', sourcePos, operands: [lhs, rhs]}
             case 'TokenType#Plus':
-                return {tag: 'Expr#Addition', sourcePos, lhs, rhs}
+                return {tag: 'Expr#Addition', sourcePos, operands: [lhs, rhs]}
             case 'TokenType#QuestionColon':
-                return {tag: 'Expr#IntersectDefaultValue', sourcePos, lhs, rhs}
+                return {tag: 'Expr#IntersectDefaultValue', sourcePos, operands: [lhs, rhs]}
             case 'TokenType#RightArrow':
-                return {tag: 'Expr#FunctionArrow', sourcePos, lhs, rhs}
+                return {tag: 'Expr#FunctionArrow', sourcePos, operands: [lhs, rhs]}
             case 'TokenType#Slash':
-                return {tag: 'Expr#Division', sourcePos, lhs, rhs}
+                return {tag: 'Expr#Division', sourcePos, operands: [lhs, rhs]}
             case 'TokenType#SynthDocument':
-                return {tag: 'Expr#Document', sourcePos, lhs, rhs}
+                return {tag: 'Expr#Document', sourcePos, operands: [lhs, rhs]}
             case 'TokenType#VerticalBar':
-                return {tag: 'Expr#Union', sourcePos, lhs, rhs}
+                return {tag: 'Expr#Union', sourcePos, operands: [lhs, rhs]}
             case 'TokenType#When':
-                return {tag: 'Expr#When', sourcePos, lhs, rhs}
+                return {tag: 'Expr#When', sourcePos, operands: [lhs, rhs]}
             case 'TokenType#Where':
-                return {tag: 'Expr#Where', sourcePos, lhs, rhs}
+                return {tag: 'Expr#Where', sourcePos, operands: [lhs, rhs]}
             default:
                 throw Error("Missing case in parseInfixOperation: " + opToken.tokenType + "'.")
 
@@ -313,14 +315,14 @@ class Parser {
                 return {
                     tag: 'Expr#Float64Literal',
                     sourcePos,
-                    value: +sourcePos.GetText(this.sourceCode),// TODO: better parsing
+                    value: +sourcePos.getText(this.sourceCode),// TODO: better parsing
                 }
 
             case 'TokenType#Identifier':
                 return {
                     tag: 'Expr#Identifier',
                     sourcePos,
-                    text: sourcePos.GetText(this.sourceCode)
+                    name: sourcePos.getText(this.sourceCode)
                 }
 
             case 'TokenType#Int64':
@@ -333,14 +335,14 @@ class Parser {
                 return {
                     tag: 'Expr#Int64Literal',
                     sourcePos,
-                    value: +sourcePos.GetText(this.sourceCode),// TODO: better parsing
+                    value: +sourcePos.getText(this.sourceCode),// TODO: better parsing
                 }
 
             case 'TokenType#LeadingDocumentation':
                 return {
                     tag: 'Expr#LeadingDocumentation',
                     sourcePos,
-                    text: sourcePos.GetText(this.sourceCode)
+                    text: sourcePos.getText(this.sourceCode)
                 }
 
             case 'TokenType#LeftBrace':
@@ -372,7 +374,7 @@ class Parser {
                 return {
                     tag: 'Expr#TrailingDocumentation',
                     sourcePos,
-                    text: sourcePos.GetText(this.sourceCode)
+                    text: sourcePos.getText(this.sourceCode)
                 }
 
             case 'TokenType#True':
@@ -405,7 +407,7 @@ class Parser {
         return {
             tag: 'Expr#LogicalNot',
             sourcePos: SourcePos.fromToken(token),
-            operand: rhs,
+            operands: [rhs],
         }
     }
 
@@ -414,8 +416,8 @@ class Parser {
         const rhs = this.parseExprBindingPower(rightBindingPower)
         return {
             tag: 'Expr#Negation',
-            sourcePos: SourcePos.fromToken(opToken).Thru(rhs.sourcePos),
-            operand: rhs,
+            sourcePos: SourcePos.fromToken(opToken).thru(rhs.sourcePos),
+            operands: [rhs],
         }
     }
 
@@ -427,48 +429,16 @@ class Parser {
         if (this.tokens[this.index].tokenType == 'TokenType#RightParenthesis') {
             const endSourcePos = SourcePos.fromToken(this.tokens[this.index])
             this.index += 1
-            const sourcePos = SourcePos.fromToken(token).Thru(endSourcePos)
+            const sourcePos = SourcePos.fromToken(token).thru(endSourcePos)
             return {
                 tag: 'Expr#Parenthesized',
                 sourcePos,
-                operand: {tag: 'Expr#Unit', sourcePos}
+                operands: [{tag: 'Expr#Empty', sourcePos}]
             }
         }
 
-        // Parse one expression.
+        // Parse the expression inside the parentheses
         const inner = this.parseExprBindingPower(0)
-
-        // Comma means function parameters
-        if (this.tokens[this.index].tokenType == 'TokenType#Comma') {
-
-            this.index += 1
-
-            const items: Expr[] = []
-            items.push(inner)
-
-            while (this.tokens[this.index].tokenType != 'TokenType#RightParenthesis') {
-                // Parse one expression.
-                items.push(this.parseExprBindingPower(0))
-
-                if (this.tokens[this.index].tokenType != 'TokenType#Comma') {
-                    break
-                }
-                this.index += 1
-            }
-
-            if (this.tokens[this.index].tokenType != 'TokenType#RightParenthesis') {
-                throw Error("Expected right parenthesis.")
-            }
-            const endSourcePos = SourcePos.fromToken(this.tokens[this.index])
-            this.index += 1
-
-            return {
-                tag: 'Expr#FunctionArguments',
-                sourcePos: SourcePos.fromToken(token).Thru(endSourcePos),
-                items
-            }
-
-        }
 
         if (this.tokens[this.index].tokenType != 'TokenType#RightParenthesis') {
             throw Error("Expected " + 'TokenType#RightParenthesis')
@@ -479,8 +449,8 @@ class Parser {
 
         return {
             tag: 'Expr#Parenthesized',
-            sourcePos: SourcePos.fromToken(token).Thru(endSourcePos),
-            operand: inner,
+            sourcePos: SourcePos.fromToken(token).thru(endSourcePos),
+            operands: [inner],
         }
 
     }
@@ -493,16 +463,15 @@ class Parser {
                 const rhs = this.#parseFunctionArgumentsExpression(opToken)
                 return {
                     tag: 'Expr#FunctionCall',
-                    sourcePos: lhs.sourcePos.Thru(rhs.sourcePos),
-                    lhs,
-                    rhs
+                    sourcePos: lhs.sourcePos.thru(rhs.sourcePos),
+                    operands: [lhs, rhs]
                 }
 
             case 'TokenType#Question':
                 return {
                     tag: 'Expr#Optional',
                     sourcePos: lhs.sourcePos,
-                    operand: lhs,
+                    operands: [lhs],
                 }
 
         }
@@ -515,11 +484,11 @@ class Parser {
         token: Token,
     ): Expr {
 
-        const items: Expr[] = []
+        const operands: Expr[] = []
 
         while (this.tokens[this.index].tokenType != 'TokenType#RightBrace') {
             // Parse one expression.
-            items.push(this.parseExprBindingPower(0))
+            operands.push(this.parseExprBindingPower(0))
 
             if (this.tokens[this.index].tokenType != 'TokenType#Comma') {
                 break
@@ -535,8 +504,8 @@ class Parser {
 
         return {
             tag: 'Expr#Record',
-            sourcePos: SourcePos.fromToken(token).Thru(endSourcePos),
-            items: items,
+            sourcePos: SourcePos.fromToken(token).thru(endSourcePos),
+            operands,
         }
 
     }

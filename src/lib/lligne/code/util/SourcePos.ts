@@ -5,7 +5,7 @@
 
 //=====================================================================================================================
 
-// SourcePos represents a range of source code bytes from startOffset to endOffset.
+// SourcePos represents a range of source code characters from startOffset to endOffset.
 import type {Token} from "../scanning/Token";
 
 export class SourcePos {
@@ -23,13 +23,13 @@ export class SourcePos {
             token.sourceOffset + token.sourceLength)
     }
 
-    // GetText slices the given sourceCode to produce the string demarcated by the source position.
-    GetText(sourceCode: string): string {
+    // Slices the given sourceCode to produce the string demarcated by the source position.
+    getText(sourceCode: string): string {
         return sourceCode.substring(this.startOffset, this.endOffset)
     }
 
-    // Thru creates a new source position extending from the start of one to the end of another.
-    Thru(that: SourcePos): SourcePos {
+    // Creates a new source position extending from the start of one to the end of another.
+    thru(that: SourcePos): SourcePos {
 
         if (that.endOffset < this.startOffset) {
             throw Error("Source Positions not in correct order.")

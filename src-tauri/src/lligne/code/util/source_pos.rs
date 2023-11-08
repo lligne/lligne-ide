@@ -8,7 +8,7 @@ use crate::lligne::code::scanning::tokens::Token;
 //=====================================================================================================================
 
 // Represents a range of source code bytes from start_offset to end_offset.
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct SourcePos {
     pub start_offset: u32,
     pub end_offset: u32,
@@ -16,7 +16,7 @@ pub struct SourcePos {
 
 //---------------------------------------------------------------------------------------------------------------------
 
-// new_source_pos constructs a SourcePos instance.
+// Constructs a SourcePos instance.
 pub fn new_source_pos(token: Token) -> SourcePos {
     return SourcePos {
         start_offset: token.source_offset,
@@ -38,7 +38,7 @@ impl SourcePos {
     // Creates a new source position extending from the start of one to the end of another.
     pub fn thru(&self, s2: SourcePos) -> SourcePos {
         if s2.end_offset < self.start_offset {
-            panic!("Source Positions not in correct order.")
+            panic!("Source positions not in correct order.")
         }
 
         return SourcePos {
@@ -58,6 +58,19 @@ mod tests {
     #[test]
     fn test_source_pos_size() {
         assert_eq!(8, size_of::<SourcePos>());
+    }
+
+    #[test]
+    fn test_thru() {
+        let s1 = SourcePos { start_offset: 3, end_offset: 8 };
+        let s2 = SourcePos { start_offset: 5, end_offset: 10 };
+
+        assert_ne!(s1, s2);
+        assert!(s1 < s2);
+
+        let s_thru = SourcePos { start_offset: 3, end_offset: 10 };
+
+        assert_eq!(s_thru, s1.thru(s2));
     }
 }
 
