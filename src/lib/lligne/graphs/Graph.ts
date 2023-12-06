@@ -1,5 +1,12 @@
+//
+// (C) Copyright 2023 Martin E. Nordberg III
+// Apache 2.0 License
+//
+
 import {type Keyed} from "./Keyed";
 import {type HomogeneousEdge} from "./Edges";
+
+//=====================================================================================================================
 
 /**
  * A directed graph where all vertices are the same type.
@@ -95,4 +102,6 @@ export class Graph<Vertex extends Keyed, EdgeProperties> {
     }
 
 }
+
+//=====================================================================================================================
 

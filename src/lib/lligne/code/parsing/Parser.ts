@@ -3,32 +3,55 @@
 // Apache 2.0 License
 //
 
-import type {Expr} from "./Expressions";
+import type {Expr, OperationExpr} from "./Expressions"
 import type {Outcome as PriorOutcome} from "../scanning/Scanner"
-import type {Token} from "../scanning/Token";
-import type {TokenType} from "../scanning/TokenType";
-import {SourcePos} from "../util/SourcePos";
+import type {Token} from "../scanning/Token"
+import type {TokenType} from "../scanning/TokenType"
+import {SourcePos} from "../util/SourcePos"
+import {type Keyed} from "../../graphs/Keyed"
+import {MutableTree, type Tree} from "../../graphs/Tree"
+import {type OperationExprTag} from "./Expressions"
 
 //=====================================================================================================================
 
+/**
+ * The outcome of parsing.
+ */
 export type Outcome = {
-    SourceCode: string,
-    NewLineOffsets: number[],
-    Model: Expr
+    /** The original source code. */
+    readonly sourceCode: string,
+
+    /** Offsets of new line characters in the source code. */
+    readonly newLineOffsets: number[],
+
+    /** The root of the resulting AST. */
+    readonly model: Expr,
+
+    /** Tree structure defining the AST. */
+    readonly operands: Tree<Expr, {}>
 }
 
 //=====================================================================================================================
 
+/**
+ * Parses a top level expression from a scan result.
+ * @param scanResult the tokens from the scanner.
+ */
 export function parseExpression(scanResult: PriorOutcome): Outcome {
-    const parser = new Parser(scanResult)
+
+    const operands = new MutableTree<Expr, {}>()
+
+    const parser = new Parser(scanResult, operands)
 
     const model = parser.parseExprBindingPower(0)
 
     return {
-        SourceCode: scanResult.SourceCode,
-        NewLineOffsets: scanResult.NewLineOffsets,
-        Model: model,
+        sourceCode: scanResult.SourceCode,
+        newLineOffsets: scanResult.NewLineOffsets,
+        model,
+        operands: operands.freeze()
     }
+
 }
 
 //---------------------------------------------------------------------------------------------------------------------
@@ -45,57 +68,56 @@ export function parseExpression(scanResult: PriorOutcome): Outcome {
 //=====================================================================================================================
 
 class Parser {
-    readonly tokens: Token[]
-    private index: number
-    readonly sourceCode: string
+    private readonly operands: MutableTree<Expr, {}>
+    private readonly sourceCode: string
+    private readonly tokens: Token[]
+    private tokensIndex: number
 
-    constructor(scanResult: PriorOutcome) {
+    constructor(scanResult: PriorOutcome, operands: MutableTree<Expr, {}>) {
+        this.operands = operands
         this.sourceCode = scanResult.SourceCode
         this.tokens = scanResult.Tokens
-        this.index = 0
+        this.tokensIndex = 0
     }
 
+    /**
+     * Parses an expression, continuing until encountering an operation with binding power greater than the given value.
+     * @param minBindingPower operations with binding power greater than this threshold signal the start of a larger
+     *                        parent expression with the so-far parsed expression as its left hand side.
+     */
     parseExprBindingPower(minBindingPower: number): Expr {
 
         let lhs = this.#parseLeftHandSide()
 
         while (true) {
 
-            // Look ahead for an operator continuing the expression
-            const opToken = this.tokens[this.index]
+            // Look ahead for an operator continuing the expression.
+            const opToken = this.tokens[this.tokensIndex]
 
             // Handle postfix operators ...
             const pBindingPower = postfixBindingPowers.get(opToken.tokenType)!
 
             if (pBindingPower) {
-
                 if (pBindingPower < minBindingPower) {
                     break
                 }
 
-                this.index += 1
-
-                lhs = this.#parsePostfixExpression(opToken, lhs)
-
+                this.tokensIndex += 1
+                lhs = this.#parsePostfixExpression(lhs, opToken)
                 continue
-
             }
 
             // Handle infix operators ...
-            const bindingPower = infixBindingPowers.get(opToken.tokenType)!
+            const iBindingPower = infixBindingPowers.get(opToken.tokenType)!
 
-            if (bindingPower) {
-
-                if (bindingPower.left < minBindingPower) {
+            if (iBindingPower) {
+                if (iBindingPower.left < minBindingPower) {
                     break
                 }
 
-                this.index += 1
-
-                lhs = this.#parseInfixOperation(opToken, bindingPower, lhs)
-
+                this.tokensIndex += 1
+                lhs = this.#parseInfixOperation(lhs, iBindingPower)
                 continue
-
             }
 
             break
@@ -109,7 +131,7 @@ class Parser {
         const lines = sourcePos.getText(this.sourceCode).split('\n')
         let value = ""
         for (let line of lines) {
-            value += line.substring(line.indexOf("`")+1).trimEnd()
+            value += line.substring(line.indexOf("`") + 1).trimEnd()
         }
         return value
     }
@@ -121,43 +143,69 @@ class Parser {
         return value
     }
 
+    /**
+     * Constructs an expression from given attributes and establishes its operands in the AST.
+     * @param tag the type of expression.
+     * @param sourcePos the source code range containing the expression
+     * @param operands the operands of the expression
+     * @private
+     */
+    #makeOperationExpr(
+        tag: OperationExprTag,
+        sourcePos: SourcePos,
+        operands: Expr[]
+    ): Keyed & OperationExpr {
+        const result: Keyed & OperationExpr = {
+            key: Symbol(),
+            tag,
+            sourcePos
+        }
+
+        operands.forEach((operand) => {
+            this.operands.join(result, operand, {})
+        })
+
+        return result
+    }
+
     #parseArrayLiteral(token: Token): Expr {
 
         const startSourcePos = SourcePos.fromToken(token)
         const operands: Expr[] = []
 
-        if (this.tokens[this.index].tokenType == 'TokenType#RightBracket') {
-            const endSourcePos = SourcePos.fromToken(this.tokens[this.index])
-            this.index += 1
-            return {
-                tag: 'Expr#ArrayLiteral',
-                sourcePos: startSourcePos.thru(endSourcePos),
+        if (this.tokens[this.tokensIndex].tokenType == 'TokenType#RightBracket') {
+            const endSourcePos = SourcePos.fromToken(this.tokens[this.tokensIndex])
+            this.tokensIndex += 1
+            return this.#makeOperationExpr(
+                'Expr#ArrayLiteral',
+                startSourcePos.thru(endSourcePos),
                 operands
-            }
+            )
         }
 
-        while (this.tokens[this.index].tokenType != 'TokenType#RightBracket') {
+        while (this.tokens[this.tokensIndex].tokenType != 'TokenType#RightBracket') {
             // Parse one expression.
             operands.push(this.parseExprBindingPower(0))
 
-            if (this.tokens[this.index].tokenType != 'TokenType#Comma') {
+            if (this.tokens[this.tokensIndex].tokenType != 'TokenType#Comma') {
                 break
             }
-            this.index += 1
+
+            this.tokensIndex += 1
         }
 
-        if (this.tokens[this.index].tokenType != 'TokenType#RightBracket') {
+        if (this.tokens[this.tokensIndex].tokenType != 'TokenType#RightBracket') {
             throw Error("Expected right bracket.")
         }
 
-        const endSourcePos = SourcePos.fromToken(this.tokens[this.index])
-        this.index += 1
+        const endSourcePos = SourcePos.fromToken(this.tokens[this.tokensIndex])
+        this.tokensIndex += 1
 
-        return {
-            tag: 'Expr#ArrayLiteral',
-            sourcePos: startSourcePos.thru(endSourcePos),
+        return this.#makeOperationExpr(
+            'Expr#ArrayLiteral',
+            startSourcePos.thru(endSourcePos),
             operands
-        }
+        )
 
     }
 
@@ -167,109 +215,48 @@ class Parser {
 
         const operands: Expr[] = []
 
-        while (this.tokens[this.index].tokenType != 'TokenType#RightParenthesis') {
+        while (this.tokens[this.tokensIndex].tokenType != 'TokenType#RightParenthesis') {
             // Parse one expression.
             operands.push(this.parseExprBindingPower(0))
 
-            if (this.tokens[this.index].tokenType != 'TokenType#Comma') {
+            if (this.tokens[this.tokensIndex].tokenType != 'TokenType#Comma') {
                 break
             }
-            this.index += 1
+            this.tokensIndex += 1
         }
 
-        if (this.tokens[this.index].tokenType != 'TokenType#RightParenthesis') {
+        if (this.tokens[this.tokensIndex].tokenType != 'TokenType#RightParenthesis') {
             throw Error("Expected right parenthesis.")
         }
 
-        const endSourcePos = SourcePos.fromToken(this.tokens[this.index])
-        this.index += 1
+        const endSourcePos = SourcePos.fromToken(this.tokens[this.tokensIndex])
+        this.tokensIndex += 1
 
-        return {
-            tag: 'Expr#FunctionArguments',
-            sourcePos: SourcePos.fromToken(token).thru(endSourcePos),
+        return this.#makeOperationExpr(
+            'Expr#FunctionArguments',
+            SourcePos.fromToken(token).thru(endSourcePos),
             operands
-        }
+        )
 
     }
 
-    // Parses an infix expression after the left hand side and the operator token have been consumed
+    /**
+     * Parses an infix expression after the left hand side and the operator token have been consumed.
+     */
     #parseInfixOperation(
-        opToken: Token,
-        bindingPower: InfixBindingPower,
-        lhs: Expr
+        lhs: Expr,
+        bindingPower: InfixBindingPower
     ): Expr {
         const rhs = this.parseExprBindingPower(bindingPower.right)
         const sourcePos = lhs.sourcePos.thru(rhs.sourcePos)
 
-        switch (opToken.tokenType) {
-
-            case 'TokenType#Ampersand':
-                return {tag: 'Expr#Intersect', sourcePos, operands: [lhs, rhs]}
-            case 'TokenType#AmpersandAmpersand':
-                return {tag: 'Expr#IntersectLowPrecedence', sourcePos, operands: [lhs, rhs]}
-            case 'TokenType#And':
-                return {tag: 'Expr#LogicalAnd', sourcePos, operands: [lhs, rhs]}
-            case 'TokenType#Asterisk':
-                return {tag: 'Expr#Multiplication', sourcePos, operands: [lhs, rhs]}
-            case 'TokenType#Colon':
-                return {tag: 'Expr#Qualification', sourcePos, operands: [lhs, rhs]}
-            case 'TokenType#Dash':
-                return {tag: 'Expr#Subtraction', sourcePos, operands: [lhs, rhs]}
-            case 'TokenType#Dot':
-                return {tag: 'Expr#FieldReference', sourcePos, operands: [lhs, rhs]}
-            case 'TokenType#DotDot':
-                return {tag: 'Expr#Range', sourcePos, operands: [lhs, rhs]}
-            case 'TokenType#Equals':
-                return {tag: 'Expr#IntersectAssignValue', sourcePos, operands: [lhs, rhs]}
-            case 'TokenType#EqualsEquals':
-                return {tag: 'Expr#Equals', sourcePos, operands: [lhs, rhs]}
-            case 'TokenType#EqualsTilde':
-                return {tag: 'Expr#Match', sourcePos, operands: [lhs, rhs]}
-            case 'TokenType#ExclamationEquals':
-                return {tag: 'Expr#NotEquals', sourcePos, operands: [lhs, rhs]}
-            case 'TokenType#ExclamationTilde':
-                return {tag: 'Expr#NotMatch', sourcePos, operands: [lhs, rhs]}
-            case 'TokenType#GreaterThan':
-                return {tag: 'Expr#GreaterThan', sourcePos, operands: [lhs, rhs]}
-            case 'TokenType#GreaterThanOrEquals':
-                return {tag: 'Expr#GreaterThanOrEquals', sourcePos, operands: [lhs, rhs]}
-            case 'TokenType#In':
-                return {tag: 'Expr#In', sourcePos, operands: [lhs, rhs]}
-            case 'TokenType#Is':
-                return {tag: 'Expr#Is', sourcePos, operands: [lhs, rhs]}
-            case 'TokenType#LessThan':
-                return {tag: 'Expr#LessThan', sourcePos, operands: [lhs, rhs]}
-            case 'TokenType#LessThanOrEquals':
-                return {tag: 'Expr#LessThanOrEquals', sourcePos, operands: [lhs, rhs]}
-            case 'TokenType#Or':
-                return {tag: 'Expr#LogicalOr', sourcePos, operands: [lhs, rhs]}
-            case 'TokenType#Plus':
-                return {tag: 'Expr#Addition', sourcePos, operands: [lhs, rhs]}
-            case 'TokenType#QuestionColon':
-                return {tag: 'Expr#IntersectDefaultValue', sourcePos, operands: [lhs, rhs]}
-            case 'TokenType#RightArrow':
-                return {tag: 'Expr#FunctionArrow', sourcePos, operands: [lhs, rhs]}
-            case 'TokenType#Slash':
-                return {tag: 'Expr#Division', sourcePos, operands: [lhs, rhs]}
-            case 'TokenType#SynthDocument':
-                return {tag: 'Expr#Document', sourcePos, operands: [lhs, rhs]}
-            case 'TokenType#VerticalBar':
-                return {tag: 'Expr#Union', sourcePos, operands: [lhs, rhs]}
-            case 'TokenType#When':
-                return {tag: 'Expr#When', sourcePos, operands: [lhs, rhs]}
-            case 'TokenType#Where':
-                return {tag: 'Expr#Where', sourcePos, operands: [lhs, rhs]}
-            default:
-                throw Error("Missing case in parseInfixOperation: " + opToken.tokenType + "'.")
-
-        }
-
+        return this.#makeOperationExpr(bindingPower.exprTag, sourcePos, [lhs, rhs])
     }
 
     #parseLeftHandSide(): Expr {
 
-        const token = this.tokens[this.index]
-        this.index += 1
+        const token = this.tokens[this.tokensIndex]
+        this.tokensIndex += 1
 
         const sourcePos = SourcePos.fromToken(token)
 
@@ -277,6 +264,7 @@ class Parser {
 
             case 'TokenType#BackTickedString':
                 return {
+                    key: Symbol(),
                     tag: 'Expr#BackTickedMultilineString',
                     sourcePos,
                     value: this.#getBackTickedStringValue(sourcePos)
@@ -284,6 +272,7 @@ class Parser {
 
             case 'TokenType#Boolean':
                 return {
+                    key: Symbol(),
                     tag: 'Expr#Boolean',
                     sourcePos,
                 }
@@ -293,6 +282,7 @@ class Parser {
 
             case 'TokenType#DoubleQuotedString':
                 return {
+                    key: Symbol(),
                     tag: 'Expr#DoubleQuotedString',
                     sourcePos,
                     value: this.#getQuotedStringValue(sourcePos)
@@ -300,6 +290,7 @@ class Parser {
 
             case 'TokenType#False':
                 return {
+                    key: Symbol(),
                     tag: 'Expr#BooleanLiteral',
                     sourcePos,
                     value: false,
@@ -307,12 +298,14 @@ class Parser {
 
             case 'TokenType#Float64':
                 return {
+                    key: Symbol(),
                     tag: 'Expr#Float64',
                     sourcePos,
                 }
 
             case 'TokenType#FloatingPointLiteral':
                 return {
+                    key: Symbol(),
                     tag: 'Expr#Float64Literal',
                     sourcePos,
                     value: +sourcePos.getText(this.sourceCode),// TODO: better parsing
@@ -320,6 +313,7 @@ class Parser {
 
             case 'TokenType#Identifier':
                 return {
+                    key: Symbol(),
                     tag: 'Expr#Identifier',
                     sourcePos,
                     name: sourcePos.getText(this.sourceCode)
@@ -327,12 +321,14 @@ class Parser {
 
             case 'TokenType#Int64':
                 return {
+                    key: Symbol(),
                     tag: 'Expr#Int64',
                     sourcePos,
                 }
 
             case 'TokenType#IntegerLiteral':
                 return {
+                    key: Symbol(),
                     tag: 'Expr#Int64Literal',
                     sourcePos,
                     value: +sourcePos.getText(this.sourceCode),// TODO: better parsing
@@ -340,6 +336,7 @@ class Parser {
 
             case 'TokenType#LeadingDocumentation':
                 return {
+                    key: Symbol(),
                     tag: 'Expr#LeadingDocumentation',
                     sourcePos,
                     text: sourcePos.getText(this.sourceCode)
@@ -359,6 +356,7 @@ class Parser {
 
             case 'TokenType#SingleQuotedString':
                 return {
+                    key: Symbol(),
                     tag: 'Expr#SingleQuotedString',
                     sourcePos: SourcePos.fromToken(token),
                     value: this.#getQuotedStringValue(sourcePos)
@@ -366,12 +364,14 @@ class Parser {
 
             case 'TokenType#String':
                 return {
+                    key: Symbol(),
                     tag: 'Expr#String',
                     sourcePos: SourcePos.fromToken(token)
                 }
 
             case 'TokenType#TrailingDocumentation':
                 return {
+                    key: Symbol(),
                     tag: 'Expr#TrailingDocumentation',
                     sourcePos,
                     text: sourcePos.getText(this.sourceCode)
@@ -379,6 +379,7 @@ class Parser {
 
             case 'TokenType#True':
                 return {
+                    key: Symbol(),
                     tag: 'Expr#BooleanLiteral',
                     sourcePos,
                     value: true,
@@ -404,21 +405,21 @@ class Parser {
     ): Expr {
         const rightBindingPower = prefixBindingPowers.get(token.tokenType)!
         const rhs = this.parseExprBindingPower(rightBindingPower)
-        return {
-            tag: 'Expr#LogicalNot',
-            sourcePos: SourcePos.fromToken(token),
-            operands: [rhs],
-        }
+        return this.#makeOperationExpr(
+            'Expr#LogicalNot',
+            SourcePos.fromToken(token),
+            [rhs]
+        )
     }
 
     #parseNegationOperationExpression(opToken: Token): Expr {
         const rightBindingPower = prefixBindingPowers.get(opToken.tokenType)!
         const rhs = this.parseExprBindingPower(rightBindingPower)
-        return {
-            tag: 'Expr#Negation',
-            sourcePos: SourcePos.fromToken(opToken).thru(rhs.sourcePos),
-            operands: [rhs],
-        }
+        return this.#makeOperationExpr(
+            'Expr#Negation',
+            SourcePos.fromToken(opToken).thru(rhs.sourcePos),
+            [rhs]
+        )
     }
 
     #parseParenthesizedExpression(
@@ -426,53 +427,53 @@ class Parser {
     ): Expr {
 
         // Handle empty parentheses specially.
-        if (this.tokens[this.index].tokenType == 'TokenType#RightParenthesis') {
-            const endSourcePos = SourcePos.fromToken(this.tokens[this.index])
-            this.index += 1
+        if (this.tokens[this.tokensIndex].tokenType == 'TokenType#RightParenthesis') {
+            const endSourcePos = SourcePos.fromToken(this.tokens[this.tokensIndex])
+            this.tokensIndex += 1
             const sourcePos = SourcePos.fromToken(token).thru(endSourcePos)
-            return {
-                tag: 'Expr#Parenthesized',
+            return this.#makeOperationExpr(
+                'Expr#Parenthesized',
                 sourcePos,
-                operands: [{tag: 'Expr#Empty', sourcePos}]
-            }
+                [{key: Symbol(), tag: 'Expr#Empty', sourcePos}]
+            )
         }
 
         // Parse the expression inside the parentheses
         const inner = this.parseExprBindingPower(0)
 
-        if (this.tokens[this.index].tokenType != 'TokenType#RightParenthesis') {
+        if (this.tokens[this.tokensIndex].tokenType != 'TokenType#RightParenthesis') {
             throw Error("Expected " + 'TokenType#RightParenthesis')
         }
 
-        const endSourcePos = SourcePos.fromToken(this.tokens[this.index])
-        this.index += 1
+        const endSourcePos = SourcePos.fromToken(this.tokens[this.tokensIndex])
+        this.tokensIndex += 1
 
-        return {
-            tag: 'Expr#Parenthesized',
-            sourcePos: SourcePos.fromToken(token).thru(endSourcePos),
-            operands: [inner],
-        }
+        return this.#makeOperationExpr(
+            'Expr#Parenthesized',
+            SourcePos.fromToken(token).thru(endSourcePos),
+            [inner]
+        )
 
     }
 
-    #parsePostfixExpression(opToken: Token, lhs: Expr): Expr {
+    #parsePostfixExpression(lhs: Expr, opToken: Token): Expr {
 
         switch (opToken.tokenType) {
 
             case 'TokenType#LeftParenthesis':
                 const rhs = this.#parseFunctionArgumentsExpression(opToken)
-                return {
-                    tag: 'Expr#FunctionCall',
-                    sourcePos: lhs.sourcePos.thru(rhs.sourcePos),
-                    operands: [lhs, rhs]
-                }
+                return this.#makeOperationExpr(
+                    'Expr#FunctionCall',
+                    lhs.sourcePos.thru(rhs.sourcePos),
+                    [lhs, rhs]
+                )
 
             case 'TokenType#Question':
-                return {
-                    tag: 'Expr#Optional',
-                    sourcePos: lhs.sourcePos,
-                    operands: [lhs],
-                }
+                return this.#makeOperationExpr(
+                    'Expr#Optional',
+                    lhs.sourcePos,
+                    [lhs]
+                )
 
         }
 
@@ -486,138 +487,155 @@ class Parser {
 
         const operands: Expr[] = []
 
-        while (this.tokens[this.index].tokenType != 'TokenType#RightBrace') {
+        while (this.tokens[this.tokensIndex].tokenType != 'TokenType#RightBrace') {
             // Parse one expression.
             operands.push(this.parseExprBindingPower(0))
 
-            if (this.tokens[this.index].tokenType != 'TokenType#Comma') {
+            if (this.tokens[this.tokensIndex].tokenType != 'TokenType#Comma') {
                 break
             }
-            this.index += 1
+
+            this.tokensIndex += 1
         }
 
-        if (this.tokens[this.index].tokenType != 'TokenType#RightBrace') {
+        if (this.tokens[this.tokensIndex].tokenType != 'TokenType#RightBrace') {
             throw Error("Expected right brace.")
         }
-        const endSourcePos = SourcePos.fromToken(this.tokens[this.index])
-        this.index += 1
 
-        return {
-            tag: 'Expr#Record',
-            sourcePos: SourcePos.fromToken(token).thru(endSourcePos),
-            operands,
-        }
+        const endSourcePos = SourcePos.fromToken(this.tokens[this.tokensIndex])
+        this.tokensIndex += 1
+
+        return this.#makeOperationExpr(
+            'Expr#Record',
+            SourcePos.fromToken(token).thru(endSourcePos),
+            operands
+        )
 
     }
-
 
 }
 
 //=====================================================================================================================
 
+/**
+ * Captures the left binding power, right binding power, and corresponding expression tag for a given infix operator.
+ */
 type InfixBindingPower = {
-    left: number
-    right: number
+    readonly left: number
+    readonly right: number
+    readonly exprTag: OperationExprTag
 }
 
 /** Binding power pairs for infix operators. */
-const infixBindingPowers = new Map<TokenType, InfixBindingPower>();
+const infixBindingPowers = new Map<TokenType, InfixBindingPower>()
 
 /** Binding powers for prefix operators. */
-const prefixBindingPowers = new Map<TokenType, number>();
+const prefixBindingPowers = new Map<TokenType, number>()
 
 /** Binding powers for postfix operators. */
-const postfixBindingPowers = new Map<TokenType, number>();
+const postfixBindingPowers = new Map<TokenType, number>()
 
-(function init() {
+let level = 1
 
-    let level = 1
+infixBindingPowers.set('TokenType#Colon', {left: level, right: level + 1, exprTag: 'Expr#Qualification'})
+infixBindingPowers.set('TokenType#Equals', {left: level, right: level + 1, exprTag: 'Expr#IntersectAssignValue'})
+infixBindingPowers.set('TokenType#QuestionColon', {
+    left: level,
+    right: level + 1,
+    exprTag: 'Expr#IntersectDefaultValue'
+})
 
-    infixBindingPowers.set('TokenType#Colon', {left: level, right: level + 1})
-    infixBindingPowers.set('TokenType#Equals', {left: level, right: level + 1})
-    infixBindingPowers.set('TokenType#QuestionColon', {left: level, right: level + 1})
+level += 2
 
-    level += 2
+infixBindingPowers.set('TokenType#AmpersandAmpersand', {
+    left: level,
+    right: level + 1,
+    exprTag: 'Expr#IntersectLowPrecedence'
+})
 
-    infixBindingPowers.set('TokenType#AmpersandAmpersand', {left: level, right: level + 1})
+level += 2
 
-    level += 2
+infixBindingPowers.set('TokenType#VerticalBar', {left: level, right: level + 1, exprTag: 'Expr#Union'})
 
-    infixBindingPowers.set('TokenType#VerticalBar', {left: level, right: level + 1})
+level += 2
 
-    level += 2
+infixBindingPowers.set('TokenType#Ampersand', {left: level, right: level + 1, exprTag: 'Expr#Intersect'})
 
-    infixBindingPowers.set('TokenType#Ampersand', {left: level, right: level + 1})
+level += 2
 
-    level += 2
+infixBindingPowers.set('TokenType#When', {left: level, right: level + 1, exprTag: 'Expr#When'})
+infixBindingPowers.set('TokenType#Where', {left: level, right: level + 1, exprTag: 'Expr#Where'})
 
-    infixBindingPowers.set('TokenType#When', {left: level, right: level + 1})
-    infixBindingPowers.set('TokenType#Where', {left: level, right: level + 1})
+level += 2
 
-    level += 2
+infixBindingPowers.set('TokenType#SynthDocument', {left: level, right: level + 1, exprTag: 'Expr#Document'})
 
-    infixBindingPowers.set('TokenType#SynthDocument', {left: level, right: level + 1})
+level += 2
 
-    level += 2
+infixBindingPowers.set('TokenType#Or', {left: level, right: level + 1, exprTag: 'Expr#LogicalOr'})
 
-    infixBindingPowers.set('TokenType#Or', {left: level, right: level + 1})
+level += 2
 
-    level += 2
+infixBindingPowers.set('TokenType#And', {left: level, right: level + 1, exprTag: 'Expr#LogicalAnd'})
 
-    infixBindingPowers.set('TokenType#And', {left: level, right: level + 1})
+level += 2
 
-    level += 2
+prefixBindingPowers.set('TokenType#Not', level)
 
-    prefixBindingPowers.set('TokenType#Not', level)
+level += 2
 
-    level += 2
+infixBindingPowers.set('TokenType#EqualsEquals', {left: level, right: level + 1, exprTag: 'Expr#Equals'})
+infixBindingPowers.set('TokenType#ExclamationEquals', {left: level, right: level + 1, exprTag: 'Expr#NotEquals'})
+infixBindingPowers.set('TokenType#GreaterThan', {left: level, right: level + 1, exprTag: 'Expr#GreaterThan'})
+infixBindingPowers.set('TokenType#GreaterThanOrEquals', {
+    left: level,
+    right: level + 1,
+    exprTag: 'Expr#GreaterThanOrEquals'
+})
+infixBindingPowers.set('TokenType#LessThan', {left: level, right: level + 1, exprTag: 'Expr#LessThan'})
+infixBindingPowers.set('TokenType#LessThanOrEquals', {
+    left: level,
+    right: level + 1,
+    exprTag: 'Expr#LessThanOrEquals'
+})
 
-    infixBindingPowers.set('TokenType#EqualsEquals', {left: level, right: level + 1})
-    infixBindingPowers.set('TokenType#ExclamationEquals', {left: level, right: level + 1})
-    infixBindingPowers.set('TokenType#GreaterThan', {left: level, right: level + 1})
-    infixBindingPowers.set('TokenType#GreaterThanOrEquals', {left: level, right: level + 1})
-    infixBindingPowers.set('TokenType#LessThan', {left: level, right: level + 1})
-    infixBindingPowers.set('TokenType#LessThanOrEquals', {left: level, right: level + 1})
+level += 2
 
-    level += 2
+infixBindingPowers.set('TokenType#In', {left: level, right: level + 1, exprTag: 'Expr#In'})
+infixBindingPowers.set('TokenType#Is', {left: level, right: level + 1, exprTag: 'Expr#Is'})
+infixBindingPowers.set('TokenType#EqualsTilde', {left: level, right: level + 1, exprTag: 'Expr#Match'})
+infixBindingPowers.set('TokenType#ExclamationTilde', {left: level, right: level + 1, exprTag: 'Expr#NotMatch'})
 
-    infixBindingPowers.set('TokenType#In', {left: level, right: level + 1})
-    infixBindingPowers.set('TokenType#Is', {left: level, right: level + 1})
-    infixBindingPowers.set('TokenType#EqualsTilde', {left: level, right: level + 1})
-    infixBindingPowers.set('TokenType#ExclamationTilde', {left: level, right: level + 1})
+level += 2
 
-    level += 2
+infixBindingPowers.set('TokenType#DotDot', {left: level, right: level + 1, exprTag: 'Expr#Range'})
 
-    infixBindingPowers.set('TokenType#DotDot', {left: level, right: level + 1})
+level += 2
 
-    level += 2
+infixBindingPowers.set('TokenType#Dash', {left: level, right: level + 1, exprTag: 'Expr#Subtraction'})
+infixBindingPowers.set('TokenType#Plus', {left: level, right: level + 1, exprTag: 'Expr#Addition'})
 
-    infixBindingPowers.set('TokenType#Dash', {left: level, right: level + 1})
-    infixBindingPowers.set('TokenType#Plus', {left: level, right: level + 1})
+level += 2
 
-    level += 2
+infixBindingPowers.set('TokenType#Asterisk', {left: level, right: level + 1, exprTag: 'Expr#Multiplication'})
+infixBindingPowers.set('TokenType#Slash', {left: level, right: level + 1, exprTag: "Expr#Division"})
 
-    infixBindingPowers.set('TokenType#Asterisk', {left: level, right: level + 1})
-    infixBindingPowers.set('TokenType#Slash', {left: level, right: level + 1})
+level += 2
 
-    level += 2
+prefixBindingPowers.set('TokenType#Dash', level)
 
-    prefixBindingPowers.set('TokenType#Dash', level)
+level += 2
 
-    level += 2
+infixBindingPowers.set('TokenType#RightArrow', {left: level, right: level + 1, exprTag: 'Expr#FunctionArrow'})
 
-    infixBindingPowers.set('TokenType#RightArrow', {left: level, right: level + 1})
+level += 2
 
-    level += 2
+infixBindingPowers.set('TokenType#Dot', {left: level, right: level + 1, exprTag: 'Expr#FieldReference'})
 
-    infixBindingPowers.set('TokenType#Dot', {left: level, right: level + 1})
+level += 2
 
-    level += 2
-
-    postfixBindingPowers.set('TokenType#LeftParenthesis', level)
-    postfixBindingPowers.set('TokenType#LeftBracket', level)
-    postfixBindingPowers.set('TokenType#Question', level)
-
-})();
+postfixBindingPowers.set('TokenType#LeftParenthesis', level)
+postfixBindingPowers.set('TokenType#LeftBracket', level)
+postfixBindingPowers.set('TokenType#Question', level)
 
 //=====================================================================================================================

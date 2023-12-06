@@ -1,5 +1,12 @@
+//
+// (C) Copyright 2023 Martin E. Nordberg III
+// Apache 2.0 License
+//
+
 import {type Keyed} from "./Keyed";
 import {type HomogeneousEdge} from "./Edges";
+
+//=====================================================================================================================
 
 export interface Tree<Vertex extends Keyed, EdgeProperties> {
 
@@ -67,6 +74,8 @@ export interface Tree<Vertex extends Keyed, EdgeProperties> {
     get size(): number
 
 }
+
+//=====================================================================================================================
 
 /**
  * Mutable implementation of Tree. Designed to construct a tree then leave it immutable (frozen).
@@ -199,6 +208,8 @@ export class MutableTree<Vertex extends Keyed, EdgeProperties>
 
 }
 
+//=====================================================================================================================
+
 /**
  * Constructs a tree using a builder callback function.
  * @param build function that builds the tree to completion
@@ -210,3 +221,6 @@ export function buildTree<Vertex extends Keyed, EdgeProperties>(
     build(tree)
     return tree.freeze()
 }
+
+//=====================================================================================================================
+

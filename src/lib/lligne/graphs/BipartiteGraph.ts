@@ -1,5 +1,12 @@
+//
+// (C) Copyright 2023 Martin E. Nordberg III
+// Apache 2.0 License
+//
+
 import {type Keyed} from "./Keyed";
 import {type HeterogeneousEdge} from "./Edges";
+
+//=====================================================================================================================
 
 export class BipartiteGraph<TailVertex extends Keyed, HeadVertex extends Keyed, EdgeProperties> {
 
@@ -100,3 +107,4 @@ export class BipartiteGraph<TailVertex extends Keyed, HeadVertex extends Keyed, 
     }
 }
 
+//=====================================================================================================================

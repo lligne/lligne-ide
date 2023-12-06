@@ -11,9 +11,9 @@ import type {Token} from "./Token";
 //=====================================================================================================================
 
 export type Outcome = {
-    SourceCode: string,
-    Tokens: Token[],
-    NewLineOffsets: number[]
+    readonly SourceCode: string,
+    readonly Tokens: Token[],
+    readonly NewLineOffsets: number[]
 }
 
 //=====================================================================================================================

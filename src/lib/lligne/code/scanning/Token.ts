@@ -9,11 +9,13 @@ import type {TokenType} from "./TokenType";
 
 //=====================================================================================================================
 
-// Token is a token of type TokenType occurring at sourceOffset with length sourceLength characters in its source code.
+/**
+ * A token has type TokenType and occurs at sourceOffset with length sourceLength characters in its source code.
+ */
 export type Token = {
-    sourceOffset: number
-    sourceLength: number
-    tokenType: TokenType
+    readonly sourceOffset: number
+    readonly sourceLength: number
+    readonly tokenType: TokenType
 }
 
 //=====================================================================================================================

@@ -37,7 +37,7 @@
 
     const parseResult = parseExpression(scanResult)
 
-    parseMsg = "Parsed " + (parseResult.NewLineOffsets.length+1) + " lines of code.";
+    parseMsg = "Parsed " + (parseResult.newLineOffsets.length+1) + " lines of code.";
   }
 </script>
 
