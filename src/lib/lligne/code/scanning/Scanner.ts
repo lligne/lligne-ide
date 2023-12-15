@@ -75,7 +75,7 @@ class Scanner {
             let token = this.#readToken()
             this.tokens.push(token)
 
-            if (token.tokenType == 'TokenType#Eof') {
+            if (token.tokenType == '#TokenTypeEof') {
                 // Two extra EOF tokens for no lookahead surprises.
                 this.tokens.push(token)
                 this.tokens.push(token)
@@ -139,45 +139,49 @@ class Scanner {
         // Handle individual characters.
         switch (ch) {
             case '&':
-                return this.#oneOrTwoRuneToken('TokenType#Ampersand', '&', 'TokenType#AmpersandAmpersand')
+                return this.#oneOrTwoRuneToken('#TokenTypeAmpersand', '&', '#TokenTypeAmpersandAmpersand')
             case '*':
-                return this.#token('TokenType#Asterisk')
+                return this.#token('#TokenTypeAsterisk')
+            case '@':
+                return this.#token('#TokenTypeAtSign')
             case '`':
                 return this.#scanBackTickedString()
             case ':':
-                return this.#token('TokenType#Colon')
+                return this.#token('#TokenTypeColon')
             case ',':
-                return this.#token('TokenType#Comma')
+                return this.#token('#TokenTypeComma')
             case '-':
-                return this.#oneOrTwoRuneToken('TokenType#Dash', '>', 'TokenType#RightArrow')
+                return this.#oneOrTwoRuneToken('#TokenTypeDash', '>', '#TokenTypeRightArrow')
             case '.':
-                return this.#oneToThreeRuneToken('TokenType#Dot', '.', 'TokenType#DotDot', '.', 'TokenType#DotDotDot')
+                return this.#oneToThreeRuneToken('#TokenTypeDot', '.', '#TokenTypeDotDot', '.', '#TokenTypeDotDotDot')
             case '=':
                 return this.#scanAfterEquals()
             case '!':
                 return this.#scanAfterExclamationMark()
             case '<':
-                return this.#oneOrTwoRuneToken('TokenType#LessThan', '=', 'TokenType#LessThanOrEquals')
+                return this.#oneOrTwoRuneToken('#TokenTypeLessThan', '=', '#TokenTypeLessThanOrEquals')
             case '>':
-                return this.#oneOrTwoRuneToken('TokenType#GreaterThan', '=', 'TokenType#GreaterThanOrEquals')
+                return this.#oneOrTwoRuneToken('#TokenTypeGreaterThan', '=', '#TokenTypeGreaterThanOrEquals')
+            case '#':
+                return this.#token('#TokenTypeHash')
             case '{':
-                return this.#token('TokenType#LeftBrace')
+                return this.#token('#TokenTypeLeftBrace')
             case '[':
-                return this.#token('TokenType#LeftBracket')
+                return this.#token('#TokenTypeLeftBracket')
             case '(':
-                return this.#token('TokenType#LeftParenthesis')
+                return this.#token('#TokenTypeLeftParenthesis')
             case '+':
-                return this.#token('TokenType#Plus')
+                return this.#token('#TokenTypePlus')
             case '?':
-                return this.#oneOrTwoRuneToken('TokenType#Question', ':', 'TokenType#QuestionColon')
+                return this.#oneOrTwoRuneToken('#TokenTypeQuestion', ':', '#TokenTypeQuestionColon')
             case '}':
-                return this.#token('TokenType#RightBrace')
+                return this.#token('#TokenTypeRightBrace')
             case ']':
-                return this.#token('TokenType#RightBracket')
+                return this.#token('#TokenTypeRightBracket')
             case ')':
-                return this.#token('TokenType#RightParenthesis')
+                return this.#token('#TokenTypeRightParenthesis')
             case ';':
-                return this.#token('TokenType#Semicolon')
+                return this.#token('#TokenTypeSemicolon')
             case '/':
                 return this.#scanAfterSlash()
             case '"':
@@ -185,16 +189,16 @@ class Scanner {
             case '\'':
                 return this.#scanSingleQuotedString()
             case '|':
-                return this.#token('TokenType#VerticalBar')
+                return this.#token('#TokenTypeVerticalBar')
             case '\0':
                 return {
                     sourceOffset: this.markedPos,
                     sourceLength: 0,
-                    tokenType: 'TokenType#Eof'
+                    tokenType: '#TokenTypeEof'
                 }
         }
 
-        return this.#token('TokenType#UnrecognizedChar')
+        return this.#token('#TokenTypeUnrecognizedChar')
 
     }
 
@@ -260,19 +264,19 @@ class Scanner {
             if (this.charAhead1 == '=') {
                 this.#advance()
 
-                return this.#token('TokenType#EqualsEqualsEquals')
+                return this.#token('#TokenTypeEqualsEqualsEquals')
             }
 
-            return this.#token('TokenType#EqualsEquals')
+            return this.#token('#TokenTypeEqualsEquals')
 
         }
 
         if (this.charAhead1 == '~') {
             this.#advance()
-            return this.#token('TokenType#EqualsTilde')
+            return this.#token('#TokenTypeEqualsTilde')
         }
 
-        return this.#token('TokenType#Equals')
+        return this.#token('#TokenTypeEquals')
 
     }
 
@@ -282,15 +286,15 @@ class Scanner {
         if (this.charAhead1 == '=') {
             this.#advance()
 
-            return this.#token('TokenType#ExclamationEquals')
+            return this.#token('#TokenTypeExclamationEquals')
         }
 
         if (this.charAhead1 == '~') {
             this.#advance()
-            return this.#token('TokenType#ExclamationTilde')
+            return this.#token('#TokenTypeExclamationTilde')
         }
 
-        return this.#token('TokenType#Exclamation')
+        return this.#token('#TokenTypeExclamation')
 
     }
 
@@ -303,7 +307,7 @@ class Scanner {
             return this.#scanDocumentation()
         }
 
-        return this.#token('TokenType#Slash')
+        return this.#token('#TokenTypeSlash')
 
     }
 
@@ -346,7 +350,7 @@ class Scanner {
         return {
             sourceOffset: mark,
             sourceLength: this.currentPos - mark,
-            tokenType: 'TokenType#BackTickedString',
+            tokenType: '#TokenTypeBackTickedString',
         }
 
     }
@@ -391,7 +395,7 @@ class Scanner {
         return {
             sourceOffset: mark,
             sourceLength: this.currentPos - mark,
-            tokenType: 'TokenType#Documentation'
+            tokenType: '#TokenTypeDocumentation'
         }
 
     }
@@ -403,7 +407,7 @@ class Scanner {
             switch (this.charAhead1) {
                 case '"':
                     this.#advance()
-                    return this.#token('TokenType#DoubleQuotedString')
+                    return this.#token('#TokenTypeDoubleQuotedString')
 
                 case '\\':
                     this.#advance()
@@ -412,7 +416,7 @@ class Scanner {
                     break;
 
                 case '\n':
-                    return this.#token('TokenType#UnclosedDoubleQuotedString')
+                    return this.#token('#TokenTypeUnclosedDoubleQuotedString')
 
                 default:
                     this.#advance()
@@ -442,7 +446,7 @@ class Scanner {
         return {
             sourceOffset: this.markedPos,
             sourceLength: this.currentPos - this.markedPos,
-            tokenType: 'TokenType#Identifier',
+            tokenType: '#TokenTypeIdentifier',
         }
 
     }
@@ -459,7 +463,7 @@ class Scanner {
             return this.#scanNumberFloatingPoint()
         }
 
-        return this.#token('TokenType#IntegerLiteral')
+        return this.#token('#TokenTypeIntegerLiteral')
 
     }
 
@@ -472,7 +476,7 @@ class Scanner {
 
         // TODO: exponents
 
-        return this.#token('TokenType#FloatingPointLiteral')
+        return this.#token('#TokenTypeFloatingPointLiteral')
 
     }
 
@@ -483,14 +487,14 @@ class Scanner {
             switch (this.charAhead1) {
                 case        '\''    :
                     this.#advance()
-                    return this.#token('TokenType#SingleQuotedString')
+                    return this.#token('#TokenTypeSingleQuotedString')
                 case        '\\'    :
                     this.#advance()
                     // TODO: handle escape sequences properly
                     this.#advance()
                     break
                 case        '\n'    :
-                    return this.#token('TokenType#UnclosedSingleQuotedString')
+                    return this.#token('#TokenTypeUnclosedSingleQuotedString')
                 default:
                     this.#advance()
             }
@@ -512,20 +516,20 @@ class Scanner {
 //=====================================================================================================================
 
 const keywords: { [key: string]: TokenType } = {
-    "and": 'TokenType#And',
-    "as": 'TokenType#As',
-    "Boolean": 'TokenType#Boolean',
-    "false": 'TokenType#False',
-    "Float64": 'TokenType#Float64',
-    "is": 'TokenType#Is',
-    "in": 'TokenType#In',
-    "Int64": 'TokenType#Int64',
-    "not": 'TokenType#Not',
-    "or": 'TokenType#Or',
-    "String": 'TokenType#String',
-    "true": 'TokenType#True',
-    "when": 'TokenType#When',
-    "where": 'TokenType#Where',
+    "and": '#TokenTypeAnd',
+    "as": '#TokenTypeAs',
+    "Boolean": '#TokenTypeBoolean',
+    "false": '#TokenTypeFalse',
+    "Float64": '#TokenTypeFloat64',
+    "is": '#TokenTypeIs',
+    "in": '#TokenTypeIn',
+    "Int64": '#TokenTypeInt64',
+    "not": '#TokenTypeNot',
+    "or": '#TokenTypeOr',
+    "String": '#TokenTypeString',
+    "true": '#TokenTypeTrue',
+    "when": '#TokenTypeWhen',
+    "where": '#TokenTypeWhere',
 }
 
 //=====================================================================================================================

@@ -11,8 +11,8 @@ import {type Keyed} from "../../graphs/Keyed"
 /**
  * A boolean literal expression.
  */
-export type BooleanLiteralExpr = {
-    readonly tag: 'Expr#BooleanLiteral',
+export type BooleanLiteralExpr = Keyed & {
+    readonly tag: '#BooleanLiteralExpr',
     readonly sourcePos: SourcePos,
     readonly value: boolean
 }
@@ -23,15 +23,15 @@ export type BooleanLiteralExpr = {
  * Enumeration of built-in fundamental type names.
  */
 export type BuiltInTypeExprTag =
-    | 'Expr#Boolean'
-    | 'Expr#Int64'
-    | 'Expr#Float64'
-    | 'Expr#String'
+    | '#BuiltInTypeBooleanExpr'
+    | '#BuiltInTypeInt64Expr'
+    | '#BuiltInTypeFloat64Expr'
+    | '#BuiltInTypeStringExpr'
 
 /**
  * A fundamental type name expression.
  */
-export type BuiltInTypeExpr = {
+export type BuiltInTypeExpr = Keyed & {
     readonly tag: BuiltInTypeExprTag,
     readonly sourcePos: SourcePos
 }
@@ -42,13 +42,13 @@ export type BuiltInTypeExpr = {
  * Leading or trailing documentation.
  */
 export type DocumentationExprTag =
-    | 'Expr#LeadingDocumentation'
-    | 'Expr#TrailingDocumentation'
+    | '#LeadingDocumentationExpr'
+    | '#TrailingDocumentationExpr'
 
 /**
  * A leading or trailing documentation comment.
  */
-export type DocumentationExpr = {
+export type DocumentationExpr = Keyed & {
     readonly tag: DocumentationExprTag,
     readonly sourcePos: SourcePos,
     readonly text: string
@@ -59,8 +59,8 @@ export type DocumentationExpr = {
 /**
  * An empty expression, generally the inside of "()".
  */
-export type EmptyExpr = {
-    readonly tag: 'Expr#Empty',
+export type EmptyExpr = Keyed & {
+    readonly tag: '#EmptyExpr',
     readonly sourcePos: SourcePos
 }
 
@@ -69,8 +69,8 @@ export type EmptyExpr = {
 /**
  * A single floating point literal.
  */
-export type Float64LiteralExpr = {
-    readonly tag: 'Expr#Float64Literal',
+export type Float64LiteralExpr = Keyed & {
+    readonly tag: '#Float64Expr',
     readonly sourcePos: SourcePos,
     readonly value: number
 }
@@ -80,8 +80,8 @@ export type Float64LiteralExpr = {
 /**
  * A single identifier.
  */
-export type IdentifierExpr = {
-    readonly tag: 'Expr#Identifier',
+export type IdentifierExpr = Keyed & {
+    readonly tag: '#IdentifierExpr',
     readonly sourcePos: SourcePos,
     readonly name: string
 }
@@ -91,8 +91,8 @@ export type IdentifierExpr = {
 /**
  * A single integer literal.
  */
-export type Int64LiteralExpr = {
-    readonly tag: 'Expr#Int64Literal',
+export type Int64LiteralExpr = Keyed & {
+    readonly tag: '#Int64LiteralExpr',
     readonly sourcePos: SourcePos,
     readonly value: number
 }
@@ -103,52 +103,54 @@ export type Int64LiteralExpr = {
  * Enumeration of operators linking a left hand side and a right hand side.
  */
 export type BinaryOperationExprTag =
-    | 'Expr#Addition'
-    | 'Expr#Division'
-    | 'Expr#Document'
-    | 'Expr#Equals'
-    | 'Expr#FieldReference'
-    | 'Expr#FunctionArrow'
-    | 'Expr#FunctionCall'
-    | 'Expr#GreaterThan'
-    | 'Expr#GreaterThanOrEquals'
-    | 'Expr#In'
-    | 'Expr#Intersect'
-    | 'Expr#IntersectAssignValue'
-    | 'Expr#IntersectDefaultValue'
-    | 'Expr#IntersectLowPrecedence'
-    | 'Expr#Is'
-    | 'Expr#LessThan'
-    | 'Expr#LessThanOrEquals'
-    | 'Expr#LogicalAnd'
-    | 'Expr#LogicalOr'
-    | 'Expr#Match'
-    | 'Expr#Multiplication'
-    | 'Expr#NotEquals'
-    | 'Expr#NotMatch'
-    | 'Expr#Qualification'
-    | 'Expr#Range'
-    | 'Expr#Subtraction'
-    | 'Expr#Union'
-    | 'Expr#When'
-    | 'Expr#Where'
+    | '#AdditionExpr'
+    | '#DivisionExpr'
+    | '#DocumentExpr'
+    | '#EqualsExpr'
+    | '#FieldReferenceExpr'
+    | '#FunctionArrowExpr'
+    | '#FunctionCallExpr'
+    | '#GreaterThanExpr'
+    | '#GreaterThanOrEqualsExpr'
+    | '#InExpr'
+    | '#IntersectExpr'
+    | '#IntersectAssignValueExpr'
+    | '#IntersectDefaultValueExpr'
+    | '#IntersectLowPrecedenceExpr'
+    | '#IsExpr'
+    | '#LessThanExpr'
+    | '#LessThanOrEqualsExpr'
+    | '#LogicalAndExpr'
+    | '#LogicalOrExpr'
+    | '#MatchExpr'
+    | '#MultiplicationExpr'
+    | '#NotEqualsExpr'
+    | '#NotMatchExpr'
+    | '#QualificationExpr'
+    | '#RangeExpr'
+    | '#SubtractionExpr'
+    | '#UnionExpr'
+    | '#WhenExpr'
+    | '#WhereExpr'
 
 /**
  * Enumeration of expressions comprised of an arbitrary number of child expressions.
  */
 export type CompositeExprTag =
-    | 'Expr#ArrayLiteral'
-    | 'Expr#FunctionArguments'
-    | 'Expr#Record'
+    | '#ArrayLiteralExpr'
+    | '#FunctionArgumentsExpr'
+    | '#RecordExpr'
 
 /**
  * Enumeration of operations with one operand (linked by the operands tree).
  */
 export type UnaryOperationExprTag =
-    | 'Expr#LogicalNot'
-    | 'Expr#Negation'
-    | 'Expr#Optional'
-    | 'Expr#Parenthesized'
+    | '#AnnotationExpr'
+    | '#LogicalNotExpr'
+    | '#NegationExpr'
+    | '#OptionalExpr'
+    | '#ParenthesizedExpr'
+    | '#TagExpr'
 
 /**
  * Combined enumeration of the above operation types.
@@ -162,7 +164,7 @@ export type OperationExprTag =
 /**
  * A generic operation involving one or more operands linked in a companion tree graph.
  */
-export type OperationExpr = {
+export type OperationExpr = Keyed & {
     readonly tag: OperationExprTag,
     readonly sourcePos: SourcePos
 }
@@ -173,17 +175,17 @@ export type OperationExpr = {
  * String literals distinguished by start/stop delimiters.
  */
 export type StringLiteralExprTag =
-    | 'Expr#SingleQuotedString'
-    | 'Expr#DoubleQuotedString'
-    | 'Expr#BackTickedString'
-    | 'Expr#SingleQuotedMultilineString'
-    | 'Expr#DoubleQuotedMultilineString'
-    | 'Expr#BackTickedMultilineString'
+    | '#SingleQuotedStringExpr'
+    | '#DoubleQuotedStringExpr'
+    | '#BackTickedStringExpr'
+    | '#SingleQuotedStringBlockExpr'
+    | '#DoubleQuotedStringBlockExpr'
+    | '#BackTickedStringBlockExpr'
 
 /**
  * A single text literal.
  */
-export type StringLiteralExpr = {
+export type StringLiteralExpr = Keyed & {
     readonly tag: StringLiteralExprTag,
     readonly sourcePos: SourcePos,
     readonly value: string
@@ -195,7 +197,6 @@ export type StringLiteralExpr = {
  * Lligne AST expressions (including keys for acting as graph vertices).
  */
 export type Expr =
-    Keyed & (
     | BooleanLiteralExpr
     | BuiltInTypeExpr
     | DocumentationExpr
@@ -205,7 +206,6 @@ export type Expr =
     | Int64LiteralExpr
     | OperationExpr
     | StringLiteralExpr
-    )
 
 //=====================================================================================================================
 

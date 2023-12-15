@@ -32,7 +32,7 @@ describe('Parser test', () => {
         check("78.9")
     })
 
-    it("parses multiline string literals", () => {
+    it("parses string block literals", () => {
         check("` line one\n ` line two\n")
     })
 

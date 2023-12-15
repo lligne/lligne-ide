@@ -26,7 +26,7 @@ describe('Tree test', () => {
 
         const mutTree = new MutableTree<Employee, EdgeAttrs>()
 
-        const abbie = mutTree.include({key: Symbol(), name: "Abbie"})
+        const abbie = mutTree.includeRoot({key: Symbol(), name: "Abbie"})
 
         const toBaker = mutTree.join(abbie, {key: Symbol(), name: "Baker"}, {since:"2001-01-01"})
         const baker = toBaker.head

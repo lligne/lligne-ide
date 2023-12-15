@@ -3,14 +3,23 @@
 // Apache 2.0 License
 //
 
-import type {Expr, OperationExpr} from "./Expressions"
+import type {BinaryOperationExprTag, Expr, OperationExpr, UnaryOperationExprTag} from "./Expressions"
 import type {Outcome as PriorOutcome} from "../scanning/Scanner"
 import type {Token} from "../scanning/Token"
 import type {TokenType} from "../scanning/TokenType"
 import {SourcePos} from "../util/SourcePos"
-import {type Keyed} from "../../graphs/Keyed"
-import {MutableTree, type Tree} from "../../graphs/Tree"
 import {type OperationExprTag} from "./Expressions"
+import {type CompositeTree, MutableCompositeTree} from "../../graphs/CompositeTree";
+
+//=====================================================================================================================
+
+/**
+ * Edge properties for the operand relationship.
+ */
+export type Operand = {
+    /** The order of an operand within its parent. */
+    readonly index: number
+}
 
 //=====================================================================================================================
 
@@ -28,7 +37,7 @@ export type Outcome = {
     readonly model: Expr,
 
     /** Tree structure defining the AST. */
-    readonly operands: Tree<Expr, {}>
+    readonly _operation_operand_: CompositeTree<OperationExpr, Expr, Operand>
 }
 
 //=====================================================================================================================
@@ -39,9 +48,9 @@ export type Outcome = {
  */
 export function parseExpression(scanResult: PriorOutcome): Outcome {
 
-    const operands = new MutableTree<Expr, {}>()
+    const _operation_operand_ = new MutableCompositeTree<OperationExpr, Expr, Operand>()
 
-    const parser = new Parser(scanResult, operands)
+    const parser = new Parser(scanResult, _operation_operand_)
 
     const model = parser.parseExprBindingPower(0)
 
@@ -49,7 +58,7 @@ export function parseExpression(scanResult: PriorOutcome): Outcome {
         sourceCode: scanResult.SourceCode,
         newLineOffsets: scanResult.NewLineOffsets,
         model,
-        operands: operands.freeze()
+        _operation_operand_: _operation_operand_.freeze()
     }
 
 }
@@ -62,19 +71,19 @@ export function parseExpression(scanResult: PriorOutcome): Outcome {
 //func ParseParenthesizedItems(sourceCode string, tokens []: Token) : Expr {
 //	parser = newParser(sourceCode, tokens)
 //
-//	return parser.parseParenthesizedExpression(tokens[0], 'TokenType#Eof)
+//	return parser.parseParenthesizedExpression(tokens[0], '#TokenTypeEof)
 //}
 
 //=====================================================================================================================
 
 class Parser {
-    private readonly operands: MutableTree<Expr, {}>
+    private readonly _operation_operand_: MutableCompositeTree<OperationExpr, Expr, Operand>
     private readonly sourceCode: string
     private readonly tokens: Token[]
     private tokensIndex: number
 
-    constructor(scanResult: PriorOutcome, operands: MutableTree<Expr, {}>) {
-        this.operands = operands
+    constructor(scanResult: PriorOutcome, operation_operand: MutableCompositeTree<OperationExpr, Expr, Operand>) {
+        this._operation_operand_ = operation_operand
         this.sourceCode = scanResult.SourceCode
         this.tokens = scanResult.Tokens
         this.tokensIndex = 0
@@ -154,15 +163,15 @@ class Parser {
         tag: OperationExprTag,
         sourcePos: SourcePos,
         operands: Expr[]
-    ): Keyed & OperationExpr {
-        const result: Keyed & OperationExpr = {
+    ): OperationExpr {
+        const result: OperationExpr = {
             key: Symbol(),
             tag,
             sourcePos
         }
 
-        operands.forEach((operand) => {
-            this.operands.join(result, operand, {})
+        operands.forEach((operand, index) => {
+            this._operation_operand_.join(result, operand, {index})
         })
 
         return result
@@ -173,28 +182,28 @@ class Parser {
         const startSourcePos = SourcePos.fromToken(token)
         const operands: Expr[] = []
 
-        if (this.tokens[this.tokensIndex].tokenType == 'TokenType#RightBracket') {
+        if (this.tokens[this.tokensIndex].tokenType == '#TokenTypeRightBracket') {
             const endSourcePos = SourcePos.fromToken(this.tokens[this.tokensIndex])
             this.tokensIndex += 1
             return this.#makeOperationExpr(
-                'Expr#ArrayLiteral',
+                '#ArrayLiteralExpr',
                 startSourcePos.thru(endSourcePos),
                 operands
             )
         }
 
-        while (this.tokens[this.tokensIndex].tokenType != 'TokenType#RightBracket') {
+        while (this.tokens[this.tokensIndex].tokenType != '#TokenTypeRightBracket') {
             // Parse one expression.
             operands.push(this.parseExprBindingPower(0))
 
-            if (this.tokens[this.tokensIndex].tokenType != 'TokenType#Comma') {
+            if (this.tokens[this.tokensIndex].tokenType != '#TokenTypeComma') {
                 break
             }
 
             this.tokensIndex += 1
         }
 
-        if (this.tokens[this.tokensIndex].tokenType != 'TokenType#RightBracket') {
+        if (this.tokens[this.tokensIndex].tokenType != '#TokenTypeRightBracket') {
             throw Error("Expected right bracket.")
         }
 
@@ -202,7 +211,7 @@ class Parser {
         this.tokensIndex += 1
 
         return this.#makeOperationExpr(
-            'Expr#ArrayLiteral',
+            '#ArrayLiteralExpr',
             startSourcePos.thru(endSourcePos),
             operands
         )
@@ -215,17 +224,17 @@ class Parser {
 
         const operands: Expr[] = []
 
-        while (this.tokens[this.tokensIndex].tokenType != 'TokenType#RightParenthesis') {
+        while (this.tokens[this.tokensIndex].tokenType != '#TokenTypeRightParenthesis') {
             // Parse one expression.
             operands.push(this.parseExprBindingPower(0))
 
-            if (this.tokens[this.tokensIndex].tokenType != 'TokenType#Comma') {
+            if (this.tokens[this.tokensIndex].tokenType != '#TokenTypeComma') {
                 break
             }
             this.tokensIndex += 1
         }
 
-        if (this.tokens[this.tokensIndex].tokenType != 'TokenType#RightParenthesis') {
+        if (this.tokens[this.tokensIndex].tokenType != '#TokenTypeRightParenthesis') {
             throw Error("Expected right parenthesis.")
         }
 
@@ -233,7 +242,7 @@ class Parser {
         this.tokensIndex += 1
 
         return this.#makeOperationExpr(
-            'Expr#FunctionArguments',
+            '#FunctionArgumentsExpr',
             SourcePos.fromToken(token).thru(endSourcePos),
             operands
         )
@@ -262,125 +271,125 @@ class Parser {
 
         switch (token.tokenType) {
 
-            case 'TokenType#BackTickedString':
+            case '#TokenTypeAtSign':
+            case '#TokenTypeDash':
+            case '#TokenTypeHash':
+            case '#TokenTypeNot':
+                return this.#parseUnaryOperationExpression(token)
+
+            case '#TokenTypeBackTickedString':
                 return {
                     key: Symbol(),
-                    tag: 'Expr#BackTickedMultilineString',
+                    tag: '#BackTickedStringBlockExpr',
                     sourcePos,
                     value: this.#getBackTickedStringValue(sourcePos)
                 }
 
-            case 'TokenType#Boolean':
+            case '#TokenTypeBoolean':
                 return {
                     key: Symbol(),
-                    tag: 'Expr#Boolean',
+                    tag: '#BuiltInTypeBooleanExpr',
                     sourcePos,
                 }
 
-            case 'TokenType#Dash':
-                return this.#parseNegationOperationExpression(token)
-
-            case 'TokenType#DoubleQuotedString':
+            case '#TokenTypeDoubleQuotedString':
                 return {
                     key: Symbol(),
-                    tag: 'Expr#DoubleQuotedString',
+                    tag: '#DoubleQuotedStringExpr',
                     sourcePos,
                     value: this.#getQuotedStringValue(sourcePos)
                 }
 
-            case 'TokenType#False':
+            case '#TokenTypeFalse':
                 return {
                     key: Symbol(),
-                    tag: 'Expr#BooleanLiteral',
+                    tag: '#BooleanLiteralExpr',
                     sourcePos,
                     value: false,
                 }
 
-            case 'TokenType#Float64':
+            case '#TokenTypeFloat64':
                 return {
                     key: Symbol(),
-                    tag: 'Expr#Float64',
+                    tag: '#BuiltInTypeFloat64Expr',
                     sourcePos,
                 }
 
-            case 'TokenType#FloatingPointLiteral':
+            case '#TokenTypeFloatingPointLiteral':
                 return {
                     key: Symbol(),
-                    tag: 'Expr#Float64Literal',
+                    tag: '#Float64Expr',
                     sourcePos,
                     value: +sourcePos.getText(this.sourceCode),// TODO: better parsing
                 }
 
-            case 'TokenType#Identifier':
+            case '#TokenTypeIdentifier':
                 return {
                     key: Symbol(),
-                    tag: 'Expr#Identifier',
+                    tag: '#IdentifierExpr',
                     sourcePos,
                     name: sourcePos.getText(this.sourceCode)
                 }
 
-            case 'TokenType#Int64':
+            case '#TokenTypeInt64':
                 return {
                     key: Symbol(),
-                    tag: 'Expr#Int64',
+                    tag: '#BuiltInTypeInt64Expr',
                     sourcePos,
                 }
 
-            case 'TokenType#IntegerLiteral':
+            case '#TokenTypeIntegerLiteral':
                 return {
                     key: Symbol(),
-                    tag: 'Expr#Int64Literal',
+                    tag: '#Int64LiteralExpr',
                     sourcePos,
                     value: +sourcePos.getText(this.sourceCode),// TODO: better parsing
                 }
 
-            case 'TokenType#LeadingDocumentation':
+            case '#TokenTypeLeadingDocumentation':
                 return {
                     key: Symbol(),
-                    tag: 'Expr#LeadingDocumentation',
+                    tag: '#LeadingDocumentationExpr',
                     sourcePos,
                     text: sourcePos.getText(this.sourceCode)
                 }
 
-            case 'TokenType#LeftBrace':
+            case '#TokenTypeLeftBrace':
                 return this.#parseRecordExpression(token)
 
-            case 'TokenType#LeftBracket':
+            case '#TokenTypeLeftBracket':
                 return this.#parseArrayLiteral(token)
 
-            case 'TokenType#LeftParenthesis':
+            case '#TokenTypeLeftParenthesis':
                 return this.#parseParenthesizedExpression(token)
 
-            case 'TokenType#Not':
-                return this.#parseLogicalNotOperationExpression(token)
-
-            case 'TokenType#SingleQuotedString':
+            case '#TokenTypeSingleQuotedString':
                 return {
                     key: Symbol(),
-                    tag: 'Expr#SingleQuotedString',
+                    tag: '#SingleQuotedStringExpr',
                     sourcePos: SourcePos.fromToken(token),
                     value: this.#getQuotedStringValue(sourcePos)
                 }
 
-            case 'TokenType#String':
+            case '#TokenTypeString':
                 return {
                     key: Symbol(),
-                    tag: 'Expr#String',
+                    tag: '#BuiltInTypeStringExpr',
                     sourcePos: SourcePos.fromToken(token)
                 }
 
-            case 'TokenType#TrailingDocumentation':
+            case '#TokenTypeTrailingDocumentation':
                 return {
                     key: Symbol(),
-                    tag: 'Expr#TrailingDocumentation',
+                    tag: '#TrailingDocumentationExpr',
                     sourcePos,
                     text: sourcePos.getText(this.sourceCode)
                 }
 
-            case 'TokenType#True':
+            case '#TokenTypeTrue':
                 return {
                     key: Symbol(),
-                    tag: 'Expr#BooleanLiteral',
+                    tag: '#BooleanLiteralExpr',
                     sourcePos,
                     value: true,
                 }
@@ -400,56 +409,34 @@ class Parser {
 
     }
 
-    #parseLogicalNotOperationExpression(
-        token: Token,
-    ): Expr {
-        const rightBindingPower = prefixBindingPowers.get(token.tokenType)!
-        const rhs = this.parseExprBindingPower(rightBindingPower)
-        return this.#makeOperationExpr(
-            'Expr#LogicalNot',
-            SourcePos.fromToken(token),
-            [rhs]
-        )
-    }
-
-    #parseNegationOperationExpression(opToken: Token): Expr {
-        const rightBindingPower = prefixBindingPowers.get(opToken.tokenType)!
-        const rhs = this.parseExprBindingPower(rightBindingPower)
-        return this.#makeOperationExpr(
-            'Expr#Negation',
-            SourcePos.fromToken(opToken).thru(rhs.sourcePos),
-            [rhs]
-        )
-    }
-
     #parseParenthesizedExpression(
         token: Token,
     ): Expr {
 
         // Handle empty parentheses specially.
-        if (this.tokens[this.tokensIndex].tokenType == 'TokenType#RightParenthesis') {
+        if (this.tokens[this.tokensIndex].tokenType == '#TokenTypeRightParenthesis') {
             const endSourcePos = SourcePos.fromToken(this.tokens[this.tokensIndex])
             this.tokensIndex += 1
             const sourcePos = SourcePos.fromToken(token).thru(endSourcePos)
             return this.#makeOperationExpr(
-                'Expr#Parenthesized',
+                '#ParenthesizedExpr',
                 sourcePos,
-                [{key: Symbol(), tag: 'Expr#Empty', sourcePos}]
+                [{key: Symbol(), tag: '#EmptyExpr', sourcePos}]
             )
         }
 
         // Parse the expression inside the parentheses
         const inner = this.parseExprBindingPower(0)
 
-        if (this.tokens[this.tokensIndex].tokenType != 'TokenType#RightParenthesis') {
-            throw Error("Expected " + 'TokenType#RightParenthesis')
+        if (this.tokens[this.tokensIndex].tokenType != '#TokenTypeRightParenthesis') {
+            throw Error("Expected " + '#TokenTypeRightParenthesis')
         }
 
         const endSourcePos = SourcePos.fromToken(this.tokens[this.tokensIndex])
         this.tokensIndex += 1
 
         return this.#makeOperationExpr(
-            'Expr#Parenthesized',
+            '#ParenthesizedExpr',
             SourcePos.fromToken(token).thru(endSourcePos),
             [inner]
         )
@@ -460,17 +447,17 @@ class Parser {
 
         switch (opToken.tokenType) {
 
-            case 'TokenType#LeftParenthesis':
+            case '#TokenTypeLeftParenthesis':
                 const rhs = this.#parseFunctionArgumentsExpression(opToken)
                 return this.#makeOperationExpr(
-                    'Expr#FunctionCall',
+                    '#FunctionCallExpr',
                     lhs.sourcePos.thru(rhs.sourcePos),
                     [lhs, rhs]
                 )
 
-            case 'TokenType#Question':
+            case '#TokenTypeQuestion':
                 return this.#makeOperationExpr(
-                    'Expr#Optional',
+                    '#OptionalExpr',
                     lhs.sourcePos,
                     [lhs]
                 )
@@ -487,18 +474,18 @@ class Parser {
 
         const operands: Expr[] = []
 
-        while (this.tokens[this.tokensIndex].tokenType != 'TokenType#RightBrace') {
+        while (this.tokens[this.tokensIndex].tokenType != '#TokenTypeRightBrace') {
             // Parse one expression.
             operands.push(this.parseExprBindingPower(0))
 
-            if (this.tokens[this.tokensIndex].tokenType != 'TokenType#Comma') {
+            if (this.tokens[this.tokensIndex].tokenType != '#TokenTypeComma') {
                 break
             }
 
             this.tokensIndex += 1
         }
 
-        if (this.tokens[this.tokensIndex].tokenType != 'TokenType#RightBrace') {
+        if (this.tokens[this.tokensIndex].tokenType != '#TokenTypeRightBrace') {
             throw Error("Expected right brace.")
         }
 
@@ -506,11 +493,23 @@ class Parser {
         this.tokensIndex += 1
 
         return this.#makeOperationExpr(
-            'Expr#Record',
+            '#RecordExpr',
             SourcePos.fromToken(token).thru(endSourcePos),
             operands
         )
 
+    }
+
+    #parseUnaryOperationExpression(
+        token: Token
+    ): Expr {
+        const bindingPower = prefixBindingPowers.get(token.tokenType)!
+        const rhs = this.parseExprBindingPower(bindingPower.right)
+        return this.#makeOperationExpr(
+            bindingPower.exprTag,
+            SourcePos.fromToken(token),
+            [rhs]
+        )
     }
 
 }
@@ -523,119 +522,135 @@ class Parser {
 type InfixBindingPower = {
     readonly left: number
     readonly right: number
-    readonly exprTag: OperationExprTag
+    readonly exprTag: BinaryOperationExprTag
+}
+
+/**
+ * Captures the right binding power and corresponding expression tag for a given prefix operator.
+ */
+type PrefixBindingPower = {
+    readonly right: number
+    readonly exprTag: UnaryOperationExprTag
 }
 
 /** Binding power pairs for infix operators. */
 const infixBindingPowers = new Map<TokenType, InfixBindingPower>()
 
 /** Binding powers for prefix operators. */
-const prefixBindingPowers = new Map<TokenType, number>()
+const prefixBindingPowers = new Map<TokenType, PrefixBindingPower>()
 
 /** Binding powers for postfix operators. */
 const postfixBindingPowers = new Map<TokenType, number>()
 
 let level = 1
 
-infixBindingPowers.set('TokenType#Colon', {left: level, right: level + 1, exprTag: 'Expr#Qualification'})
-infixBindingPowers.set('TokenType#Equals', {left: level, right: level + 1, exprTag: 'Expr#IntersectAssignValue'})
-infixBindingPowers.set('TokenType#QuestionColon', {
+infixBindingPowers.set('#TokenTypeColon', {left: level, right: level + 1, exprTag: '#QualificationExpr'})
+infixBindingPowers.set('#TokenTypeEquals', {left: level, right: level + 1, exprTag: '#IntersectAssignValueExpr'})
+infixBindingPowers.set('#TokenTypeQuestionColon', {
     left: level,
     right: level + 1,
-    exprTag: 'Expr#IntersectDefaultValue'
+    exprTag: '#IntersectDefaultValueExpr'
 })
 
 level += 2
 
-infixBindingPowers.set('TokenType#AmpersandAmpersand', {
+infixBindingPowers.set('#TokenTypeAmpersandAmpersand', {
     left: level,
     right: level + 1,
-    exprTag: 'Expr#IntersectLowPrecedence'
+    exprTag: '#IntersectLowPrecedenceExpr'
 })
 
 level += 2
 
-infixBindingPowers.set('TokenType#VerticalBar', {left: level, right: level + 1, exprTag: 'Expr#Union'})
+infixBindingPowers.set('#TokenTypeVerticalBar', {left: level, right: level + 1, exprTag: '#UnionExpr'})
 
 level += 2
 
-infixBindingPowers.set('TokenType#Ampersand', {left: level, right: level + 1, exprTag: 'Expr#Intersect'})
+infixBindingPowers.set('#TokenTypeAmpersand', {left: level, right: level + 1, exprTag: '#IntersectExpr'})
 
 level += 2
 
-infixBindingPowers.set('TokenType#When', {left: level, right: level + 1, exprTag: 'Expr#When'})
-infixBindingPowers.set('TokenType#Where', {left: level, right: level + 1, exprTag: 'Expr#Where'})
+infixBindingPowers.set('#TokenTypeWhen', {left: level, right: level + 1, exprTag: '#WhenExpr'})
+infixBindingPowers.set('#TokenTypeWhere', {left: level, right: level + 1, exprTag: '#WhereExpr'})
 
 level += 2
 
-infixBindingPowers.set('TokenType#SynthDocument', {left: level, right: level + 1, exprTag: 'Expr#Document'})
+infixBindingPowers.set('#TokenTypeSynthDocument', {left: level, right: level + 1, exprTag: '#DocumentExpr'})
 
 level += 2
 
-infixBindingPowers.set('TokenType#Or', {left: level, right: level + 1, exprTag: 'Expr#LogicalOr'})
+infixBindingPowers.set('#TokenTypeOr', {left: level, right: level + 1, exprTag: '#LogicalOrExpr'})
 
 level += 2
 
-infixBindingPowers.set('TokenType#And', {left: level, right: level + 1, exprTag: 'Expr#LogicalAnd'})
+infixBindingPowers.set('#TokenTypeAnd', {left: level, right: level + 1, exprTag: '#LogicalAndExpr'})
 
 level += 2
 
-prefixBindingPowers.set('TokenType#Not', level)
+prefixBindingPowers.set('#TokenTypeNot', {right: level, exprTag: '#LogicalNotExpr'})
 
 level += 2
 
-infixBindingPowers.set('TokenType#EqualsEquals', {left: level, right: level + 1, exprTag: 'Expr#Equals'})
-infixBindingPowers.set('TokenType#ExclamationEquals', {left: level, right: level + 1, exprTag: 'Expr#NotEquals'})
-infixBindingPowers.set('TokenType#GreaterThan', {left: level, right: level + 1, exprTag: 'Expr#GreaterThan'})
-infixBindingPowers.set('TokenType#GreaterThanOrEquals', {
+infixBindingPowers.set('#TokenTypeEqualsEquals', {left: level, right: level + 1, exprTag: '#EqualsExpr'})
+infixBindingPowers.set('#TokenTypeExclamationEquals', {left: level, right: level + 1, exprTag: '#NotEqualsExpr'})
+infixBindingPowers.set('#TokenTypeGreaterThan', {left: level, right: level + 1, exprTag: '#GreaterThanExpr'})
+infixBindingPowers.set('#TokenTypeGreaterThanOrEquals', {
     left: level,
     right: level + 1,
-    exprTag: 'Expr#GreaterThanOrEquals'
+    exprTag: '#GreaterThanOrEqualsExpr'
 })
-infixBindingPowers.set('TokenType#LessThan', {left: level, right: level + 1, exprTag: 'Expr#LessThan'})
-infixBindingPowers.set('TokenType#LessThanOrEquals', {
+infixBindingPowers.set('#TokenTypeLessThan', {left: level, right: level + 1, exprTag: '#LessThanExpr'})
+infixBindingPowers.set('#TokenTypeLessThanOrEquals', {
     left: level,
     right: level + 1,
-    exprTag: 'Expr#LessThanOrEquals'
+    exprTag: '#LessThanOrEqualsExpr'
 })
 
 level += 2
 
-infixBindingPowers.set('TokenType#In', {left: level, right: level + 1, exprTag: 'Expr#In'})
-infixBindingPowers.set('TokenType#Is', {left: level, right: level + 1, exprTag: 'Expr#Is'})
-infixBindingPowers.set('TokenType#EqualsTilde', {left: level, right: level + 1, exprTag: 'Expr#Match'})
-infixBindingPowers.set('TokenType#ExclamationTilde', {left: level, right: level + 1, exprTag: 'Expr#NotMatch'})
+infixBindingPowers.set('#TokenTypeIn', {left: level, right: level + 1, exprTag: '#InExpr'})
+infixBindingPowers.set('#TokenTypeIs', {left: level, right: level + 1, exprTag: '#IsExpr'})
+infixBindingPowers.set('#TokenTypeEqualsTilde', {left: level, right: level + 1, exprTag: '#MatchExpr'})
+infixBindingPowers.set('#TokenTypeExclamationTilde', {left: level, right: level + 1, exprTag: '#NotMatchExpr'})
 
 level += 2
 
-infixBindingPowers.set('TokenType#DotDot', {left: level, right: level + 1, exprTag: 'Expr#Range'})
+infixBindingPowers.set('#TokenTypeDotDot', {left: level, right: level + 1, exprTag: '#RangeExpr'})
 
 level += 2
 
-infixBindingPowers.set('TokenType#Dash', {left: level, right: level + 1, exprTag: 'Expr#Subtraction'})
-infixBindingPowers.set('TokenType#Plus', {left: level, right: level + 1, exprTag: 'Expr#Addition'})
+infixBindingPowers.set('#TokenTypeDash', {left: level, right: level + 1, exprTag: '#SubtractionExpr'})
+infixBindingPowers.set('#TokenTypePlus', {left: level, right: level + 1, exprTag: '#AdditionExpr'})
 
 level += 2
 
-infixBindingPowers.set('TokenType#Asterisk', {left: level, right: level + 1, exprTag: 'Expr#Multiplication'})
-infixBindingPowers.set('TokenType#Slash', {left: level, right: level + 1, exprTag: "Expr#Division"})
+infixBindingPowers.set('#TokenTypeAsterisk', {left: level, right: level + 1, exprTag: '#MultiplicationExpr'})
+infixBindingPowers.set('#TokenTypeSlash', {left: level, right: level + 1, exprTag: '#DivisionExpr'})
 
 level += 2
 
-prefixBindingPowers.set('TokenType#Dash', level)
+prefixBindingPowers.set('#TokenTypeDash', {right: level, exprTag: '#NegationExpr'})
 
 level += 2
 
-infixBindingPowers.set('TokenType#RightArrow', {left: level, right: level + 1, exprTag: 'Expr#FunctionArrow'})
+infixBindingPowers.set('#TokenTypeRightArrow', {left: level, right: level + 1, exprTag: '#FunctionArrowExpr'})
 
 level += 2
 
-infixBindingPowers.set('TokenType#Dot', {left: level, right: level + 1, exprTag: 'Expr#FieldReference'})
+prefixBindingPowers.set('#TokenTypeAtSign', {right: level, exprTag: '#AnnotationExpr'})
 
 level += 2
 
-postfixBindingPowers.set('TokenType#LeftParenthesis', level)
-postfixBindingPowers.set('TokenType#LeftBracket', level)
-postfixBindingPowers.set('TokenType#Question', level)
+infixBindingPowers.set('#TokenTypeDot', {left: level, right: level + 1, exprTag: '#FieldReferenceExpr'})
+
+level += 2
+
+prefixBindingPowers.set('#TokenTypeHash', {right: level, exprTag: '#TagExpr'})
+
+level += 2
+
+postfixBindingPowers.set('#TokenTypeLeftParenthesis', level)
+postfixBindingPowers.set('#TokenTypeLeftBracket', level)
+postfixBindingPowers.set('#TokenTypeQuestion', level)
 
 //=====================================================================================================================

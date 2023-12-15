@@ -77,6 +77,10 @@ export interface Tree<Vertex extends Keyed, EdgeProperties> {
 
 //=====================================================================================================================
 
+type VertexKey = symbol
+
+//=====================================================================================================================
+
 /**
  * Mutable implementation of Tree. Designed to construct a tree then leave it immutable (frozen).
  */
@@ -84,9 +88,9 @@ export class MutableTree<Vertex extends Keyed, EdgeProperties>
     implements Tree<Vertex, EdgeProperties> {
 
     private edgeCount: number
-    private readonly edgeIn: Map<symbol, HomogeneousEdge<Vertex, EdgeProperties>>
-    private readonly edgesOut: Map<symbol, HomogeneousEdge<Vertex, EdgeProperties>[]>
-    private readonly vertices: Map<symbol, Vertex>
+    private readonly edgeIn: Map<VertexKey, HomogeneousEdge<Vertex, EdgeProperties>>
+    private readonly edgesOut: Map<VertexKey, HomogeneousEdge<Vertex, EdgeProperties>[]>
+    private readonly vertices: Map<VertexKey, Vertex>
 
     constructor() {
         this.edgeCount = 0
@@ -151,12 +155,23 @@ export class MutableTree<Vertex extends Keyed, EdgeProperties>
      * Adds a vertex to this graph.
      * @param vertex the vertex to add
      */
-    include(vertex: Vertex): Vertex {
+    #include(vertex: Vertex): Vertex {
         if (!this.vertices.get(vertex.key)) {
             this.vertices.set(vertex.key, vertex)
             this.edgesOut.set(vertex.key, [])
         }
         return vertex
+    }
+
+    /**
+     * Adds the root vertex to this graph.
+     * @param vertex the vertex to add
+     */
+    includeRoot(vertex: Vertex): Vertex {
+        if (this.vertices.size != 0) {
+            throw Error("Tree already has a root.")
+        }
+        return this.#include(vertex)
     }
 
     inDegree(vertex: Vertex): number {
@@ -177,8 +192,8 @@ export class MutableTree<Vertex extends Keyed, EdgeProperties>
             throw Error("Head vertex is already linked from a different tail.")
         }
 
-        this.include(tail)
-        this.include(head)
+        this.#include(tail)
+        this.#include(head)
 
         const result: HomogeneousEdge<Vertex, EdgeProperties> = {
             key: Symbol(),

@@ -17,46 +17,46 @@ export function filterLeadingTrailingDocumentation(scanResult: Outcome): Outcome
 
     let index = 0
     while (index < tokens.length - 1) {
-        if (tokens[index].tokenType == 'TokenType#Documentation') {
+        if (tokens[index].tokenType == '#TokenTypeDocumentation') {
             result.push({
                 sourceOffset: tokens[index].sourceOffset,
                 sourceLength: tokens[index].sourceLength,
-                tokenType: 'TokenType#LeadingDocumentation'
+                tokenType: '#TokenTypeLeadingDocumentation'
             })
             result.push({
                 sourceOffset: tokens[index].sourceOffset,
                 sourceLength: 0,
-                tokenType: 'TokenType#SynthDocument'
+                tokenType: '#TokenTypeSynthDocument'
             })
             index += 1
-        } else if (tokens[index + 1].tokenType == 'TokenType#Documentation') {
+        } else if (tokens[index + 1].tokenType == '#TokenTypeDocumentation') {
             if (tokensOnSameLine(scanResult.SourceCode, tokens[index].sourceOffset, tokens[index + 1].sourceOffset)) {
 
-                if (tokens[index].tokenType == 'TokenType#Comma' || tokens[index].tokenType == 'TokenType#Semicolon') {
+                if (tokens[index].tokenType == '#TokenTypeComma' || tokens[index].tokenType == '#TokenTypeSemicolon') {
                     result.push({
                         sourceOffset: tokens[index + 1].sourceOffset,
                         sourceLength: 0,
-                        tokenType: 'TokenType#SynthDocument'
+                        tokenType: '#TokenTypeSynthDocument'
                     })
                     result.push({
                         sourceOffset: tokens[index + 1].sourceOffset,
                         sourceLength: tokens[index + 1].sourceLength,
-                        tokenType: 'TokenType#TrailingDocumentation'
+                        tokenType: '#TokenTypeTrailingDocumentation'
                     })
                 }
 
                 result.push(tokens[index])
 
-                if (tokens[index].tokenType != 'TokenType#Comma' && tokens[index].tokenType != 'TokenType#Semicolon') {
+                if (tokens[index].tokenType != '#TokenTypeComma' && tokens[index].tokenType != '#TokenTypeSemicolon') {
                     result.push({
                         sourceOffset: tokens[index + 1].sourceOffset,
                         sourceLength: 0,
-                        tokenType: 'TokenType#SynthDocument'
+                        tokenType: '#TokenTypeSynthDocument'
                     })
                     result.push({
                         sourceOffset: tokens[index + 1].sourceOffset,
                         sourceLength: tokens[index + 1].sourceLength,
-                        tokenType: 'TokenType#TrailingDocumentation'
+                        tokenType: '#TokenTypeTrailingDocumentation'
                     })
                 }
 
@@ -67,12 +67,12 @@ export function filterLeadingTrailingDocumentation(scanResult: Outcome): Outcome
                 result.push({
                     sourceOffset: tokens[index + 1].sourceOffset,
                     sourceLength: tokens[index + 1].sourceLength,
-                    tokenType: 'TokenType#LeadingDocumentation'
+                    tokenType: '#TokenTypeLeadingDocumentation'
                 })
                 result.push({
                     sourceOffset: tokens[index + 1].sourceOffset,
                     sourceLength: 0,
-                    tokenType: 'TokenType#SynthDocument'
+                    tokenType: '#TokenTypeSynthDocument'
                 })
                 index += 2
 
