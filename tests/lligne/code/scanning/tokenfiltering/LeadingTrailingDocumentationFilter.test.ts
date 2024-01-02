@@ -35,7 +35,7 @@ stuff {
 `
         let scanOutcome = scan(sourceCode)
         scanOutcome = filterLeadingTrailingDocumentation(scanOutcome)
-        const tokens = scanOutcome.Tokens
+        const tokens = scanOutcome.tokens
 
         expectToken(tokens[0], '#TokenTypeLeadingDocumentation', 1, 45)
         expectToken(tokens[1], '#TokenTypeSynthDocument', 1, 0)

@@ -11,9 +11,9 @@ import type {Token} from "./Token";
 //=====================================================================================================================
 
 export type Outcome = {
-    readonly SourceCode: string,
-    readonly Tokens: Token[],
-    readonly NewLineOffsets: number[]
+    readonly sourceCode: string,
+    readonly tokens: Token[],
+    readonly newLineOffsets: number[]
 }
 
 //=====================================================================================================================
@@ -29,9 +29,9 @@ export function scan(sourceCode: string): Outcome {
 
     // Extract the results.
     return {
-        SourceCode: sourceCode,
-        Tokens: scanner.tokens,
-        NewLineOffsets: scanner.newLineOffsets,
+        sourceCode: sourceCode,
+        tokens: scanner.tokens,
+        newLineOffsets: scanner.newLineOffsets,
     }
 
 }

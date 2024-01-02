@@ -12,7 +12,7 @@ import type {Outcome} from "../Scanner";
 import type {Token} from "../Token";
 
 export function filterLeadingTrailingDocumentation(scanResult: Outcome): Outcome {
-    const tokens = scanResult.Tokens
+    const tokens = scanResult.tokens
     const result: Token[] = []
 
     let index = 0
@@ -30,7 +30,7 @@ export function filterLeadingTrailingDocumentation(scanResult: Outcome): Outcome
             })
             index += 1
         } else if (tokens[index + 1].tokenType == '#TokenTypeDocumentation') {
-            if (tokensOnSameLine(scanResult.SourceCode, tokens[index].sourceOffset, tokens[index + 1].sourceOffset)) {
+            if (tokensOnSameLine(scanResult.sourceCode, tokens[index].sourceOffset, tokens[index + 1].sourceOffset)) {
 
                 if (tokens[index].tokenType == '#TokenTypeComma' || tokens[index].tokenType == '#TokenTypeSemicolon') {
                     result.push({
@@ -84,9 +84,9 @@ export function filterLeadingTrailingDocumentation(scanResult: Outcome): Outcome
     }
 
     return {
-        SourceCode: scanResult.SourceCode,
-        Tokens: result,
-        NewLineOffsets: scanResult.NewLineOffsets
+        sourceCode: scanResult.sourceCode,
+        tokens: result,
+        newLineOffsets: scanResult.newLineOffsets
     }
 }
 
