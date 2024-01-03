@@ -136,10 +136,22 @@ export type BinaryOperationExprTag =
 /**
  * Enumeration of expressions comprised of an arbitrary number of child expressions.
  */
-export type CompositeExprTag =
+export type SequenceExprTag =
     | '#ArrayLiteralExpr'
     | '#FunctionArgumentsExpr'
     | '#RecordExpr'
+
+/**
+ * Top level for a single source file.
+ */
+export type SourceFileExprTag =
+    | '#SourceFileExpr'
+
+/**
+ * Top level for all source files in a compilation.
+ */
+export type TopLevelExprTag =
+    | '#TopLevelExpr'
 
 /**
  * Enumeration of operations with one operand (linked by the operands tree).
@@ -155,17 +167,19 @@ export type UnaryOperationExprTag =
 /**
  * Combined enumeration of the above operation types.
  */
-export type OperationExprTag =
+export type CompositeExprTag =
     | BinaryOperationExprTag
-    | CompositeExprTag
+    | SequenceExprTag
+    | SourceFileExprTag
+    | TopLevelExprTag
     | UnaryOperationExprTag
     ;
 
 /**
  * A generic operation involving one or more operands linked in a companion tree graph.
  */
-export type OperationExpr = Keyed & {
-    readonly tag: OperationExprTag,
+export type CompositeExpr = Keyed & {
+    readonly tag: CompositeExprTag,
     readonly sourcePos: SourcePos
 }
 
@@ -194,17 +208,17 @@ export type StringLiteralExpr = Keyed & {
 //=====================================================================================================================
 
 /**
- * Lligne AST expressions (including keys for acting as graph vertices).
+ * Lligne AST expressions.
  */
 export type Expr =
     | BooleanLiteralExpr
     | BuiltInTypeExpr
+    | CompositeExpr
     | DocumentationExpr
     | EmptyExpr
     | Float64LiteralExpr
     | IdentifierExpr
     | Int64LiteralExpr
-    | OperationExpr
     | StringLiteralExpr
 
 //=====================================================================================================================

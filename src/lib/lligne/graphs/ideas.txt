@@ -1,0 +1,74 @@
+
+Graph
+Tree                            Adapter
+
+Directed
+Undirected                      prefix = "Undirected"
+
+Homogeneous
+Heterogeneous/Bipartite         prefix = "Hetero"
+
+Cyclic
+Acyclic                         Plugin
+
+No Edge Properties
+Edge Properties
+
+MultiEdges?                     Plugin
+
+Self-Loops?                     Plugin
+
+Many:Many
+1:1                             suffix = "1To1"
+1:Many                          suffix = "1ToN"
+Many:1                          suffix = "NTo1"
+
+Degree Limits?                  Plugin
+
+Connected                       Plugin
+Tree Root                       Plugin
+DAG Levels                      Plugin
+
+
+["Undirected"] ["Hetero"] "Graph" ["1To1" | "1ToN" | "NTo1"]
+
+# Base Graphs
+- GraphNtoN (aka Graph)
+- Graph1To1
+- Graph1ToN
+- GraphNTo1
+- HeteroGraphNtoN (aka HeteroGraph)
+- HeteroGraph1To1
+- HeteroGraph1ToN
+- HeteroGraphNTo1
+
+# Adapters
+- Tree          - Adapter around Graph1toN (parent/child terminology)
+                  o NoCycles
+                  o NoSelfLoops
+                  o ConnectedWhenFrozen
+- CompositeTree - Adapter around HeteroGraph1toN (parent/child with parent a subtype of child)
+                  o NoCycles
+                  o NoSelfLoops
+                  o ConnectedWhenFrozen
+- UndirectedXxx - Adapter around Xxx (two directed edges per undirected edge)
+
+# Listener Plugins
+- Connected
+- MaxInDegree(n)
+- MaxOutDegree(n)
+- NoCycles
+- NoIsolatedVertices
+- NoMultiEdges
+- NoSelfLoops
+
+# Post-Checking Plugins
+- ConnectedWhenFrozen
+- MaxInDegreeWhenFrozen(n)
+- MaxOutDegreeWhenFrozen(n)
+- MinInDegreeWhenFrozen(n)
+- MinOutDegreeWhenFrozen(n)
+- NoCyclesWhenFrozen
+- NoIsolatedVerticesWhenFrozen
+- NoMultiEdgesWhenFrozen
+- NoSelfLoopsWhenFrozen

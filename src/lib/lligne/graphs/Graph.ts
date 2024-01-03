@@ -4,7 +4,7 @@
 //
 
 import {type Keyed} from "./Keyed";
-import {type HomogeneousEdge} from "./Edges";
+import {type Edge} from "./Edges";
 
 //=====================================================================================================================
 
@@ -14,8 +14,8 @@ import {type HomogeneousEdge} from "./Edges";
 export class Graph<Vertex extends Keyed, EdgeProperties> {
 
     private edgeCount: number
-    private readonly edgesIn: Map<symbol, HomogeneousEdge<Vertex, EdgeProperties>[]>
-    private readonly edgesOut: Map<symbol, HomogeneousEdge<Vertex, EdgeProperties>[]>
+    private readonly edgesIn: Map<symbol, Edge<Vertex, EdgeProperties>[]>
+    private readonly edgesOut: Map<symbol, Edge<Vertex, EdgeProperties>[]>
     private readonly vertices: Map<symbol, Vertex>
 
     constructor() {
@@ -25,7 +25,7 @@ export class Graph<Vertex extends Keyed, EdgeProperties> {
         this.vertices = new Map()
     }
 
-    forEachIncomingEdge(vertex: Vertex, callback: (edge: HomogeneousEdge<Vertex, EdgeProperties>) => void) {
+    forEachIncomingEdge(vertex: Vertex, callback: (edge: Edge<Vertex, EdgeProperties>) => void) {
         const edgesIn = this.edgesIn.get(vertex.key)
         if (edgesIn) {
             edgesIn.forEach(callback)
@@ -34,7 +34,7 @@ export class Graph<Vertex extends Keyed, EdgeProperties> {
         }
     }
 
-    forEachOutgoingEdge(vertex: Vertex, callback: (edge: HomogeneousEdge<Vertex, EdgeProperties>) => void) {
+    forEachOutgoingEdge(vertex: Vertex, callback: (edge: Edge<Vertex, EdgeProperties>) => void) {
         const edgesOut = this.edgesOut.get(vertex.key)
         if (edgesOut) {
             edgesOut.forEach(callback)
@@ -43,7 +43,7 @@ export class Graph<Vertex extends Keyed, EdgeProperties> {
         }
     }
 
-    hasEdge(edge: HomogeneousEdge<Vertex, EdgeProperties>): boolean {
+    hasEdge(edge: Edge<Vertex, EdgeProperties>): boolean {
         const head = edge.head
         const tail = edge.tail
         return this.hasVertex(tail) && this.hasVertex(head) &&
@@ -67,15 +67,15 @@ export class Graph<Vertex extends Keyed, EdgeProperties> {
         return this.edgesIn.get(v.key)?.length ?? 0
     }
 
-    isSelfLoop(edge: HomogeneousEdge<Vertex, EdgeProperties>): boolean {
+    isSelfLoop(edge: Edge<Vertex, EdgeProperties>): boolean {
         return edge.head === edge.tail
     }
 
-    join(tail: Vertex, head: Vertex, attr: EdgeProperties): HomogeneousEdge<Vertex, EdgeProperties> {
+    join(tail: Vertex, head: Vertex, attr: EdgeProperties): Edge<Vertex, EdgeProperties> {
         this.include(tail)
         this.include(head)
 
-        const result: HomogeneousEdge<Vertex, EdgeProperties> = {
+        const result: Edge<Vertex, EdgeProperties> = {
             key: Symbol(),
             tail,
             head,

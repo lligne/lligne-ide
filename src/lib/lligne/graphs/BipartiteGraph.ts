@@ -4,15 +4,15 @@
 //
 
 import {type Keyed} from "./Keyed";
-import {type HeterogeneousEdge} from "./Edges";
+import {type HeteroEdge} from "./Edges";
 
 //=====================================================================================================================
 
 export class BipartiteGraph<TailVertex extends Keyed, HeadVertex extends Keyed, EdgeProperties> {
 
     private edgeCount: number
-    private readonly edgesIn: Map<symbol, HeterogeneousEdge<TailVertex, HeadVertex, EdgeProperties>[]>
-    private readonly edgesOut: Map<symbol, HeterogeneousEdge<TailVertex, HeadVertex, EdgeProperties>[]>
+    private readonly edgesIn: Map<symbol, HeteroEdge<TailVertex, HeadVertex, EdgeProperties>[]>
+    private readonly edgesOut: Map<symbol, HeteroEdge<TailVertex, HeadVertex, EdgeProperties>[]>
     private readonly tailVertices: Map<symbol, TailVertex>
     private readonly headVertices: Map<symbol, HeadVertex>
 
@@ -24,7 +24,7 @@ export class BipartiteGraph<TailVertex extends Keyed, HeadVertex extends Keyed, 
         this.headVertices = new Map()
     }
 
-    forEachIncomingEdge(vertex: HeadVertex, callback: (edge: HeterogeneousEdge<TailVertex, HeadVertex, EdgeProperties>) => void) {
+    forEachIncomingEdge(vertex: HeadVertex, callback: (edge: HeteroEdge<TailVertex, HeadVertex, EdgeProperties>) => void) {
         const edgesIn = this.edgesIn.get(vertex.key)
         if (edgesIn) {
             edgesIn.forEach(callback)
@@ -33,7 +33,7 @@ export class BipartiteGraph<TailVertex extends Keyed, HeadVertex extends Keyed, 
         }
     }
 
-    forEachOutgoingEdge(vertex: TailVertex, callback: (edge: HeterogeneousEdge<TailVertex, HeadVertex, EdgeProperties>) => void) {
+    forEachOutgoingEdge(vertex: TailVertex, callback: (edge: HeteroEdge<TailVertex, HeadVertex, EdgeProperties>) => void) {
         const edgesOut = this.edgesOut.get(vertex.key)
         if (edgesOut) {
             edgesOut.forEach(callback)
@@ -42,7 +42,7 @@ export class BipartiteGraph<TailVertex extends Keyed, HeadVertex extends Keyed, 
         }
     }
 
-    hasEdge(edge: HeterogeneousEdge<TailVertex, HeadVertex, EdgeProperties>): boolean {
+    hasEdge(edge: HeteroEdge<TailVertex, HeadVertex, EdgeProperties>): boolean {
         const head = edge.head
         const tail = edge.tail
         return this.hasTailVertex(tail) && this.hasHeadVertex(head) &&
@@ -76,11 +76,11 @@ export class BipartiteGraph<TailVertex extends Keyed, HeadVertex extends Keyed, 
         return this.edgesIn.get(v.key)?.length ?? 0
     }
 
-    join(tail: TailVertex, head: HeadVertex, attr: EdgeProperties): HeterogeneousEdge<TailVertex, HeadVertex, EdgeProperties> {
+    join(tail: TailVertex, head: HeadVertex, attr: EdgeProperties): HeteroEdge<TailVertex, HeadVertex, EdgeProperties> {
         this.includeTail(tail)
         this.includeHead(head)
 
-        const result: HeterogeneousEdge<TailVertex, HeadVertex, EdgeProperties> = {
+        const result: HeteroEdge<TailVertex, HeadVertex, EdgeProperties> = {
             key: Symbol(),
             tail,
             head,

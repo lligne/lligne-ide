@@ -3,21 +3,21 @@
 // Apache 2.0 License
 //
 
-import type {BinaryOperationExprTag, Expr, OperationExpr, UnaryOperationExprTag} from "./Expressions"
+import type {BinaryOperationExprTag, Expr, CompositeExpr, UnaryOperationExprTag} from "./Expressions"
 import type {Outcome as PriorOutcome} from "../scanning/Scanner"
 import type {Token} from "../scanning/Token"
 import type {TokenType} from "../scanning/TokenType"
 import {SourcePos} from "../util/SourcePos"
-import {type OperationExprTag} from "./Expressions"
+import {type CompositeExprTag} from "./Expressions"
 import {type CompositeTree, MutableCompositeTree} from "../../graphs/CompositeTree";
 
 //=====================================================================================================================
 
 /**
- * Edge properties for the operand relationship.
+ * Edge properties for the parent-child relationship.
  */
-export type Operand = {
-    /** The order of an operand within its parent. */
+export type ChildIndex = {
+    /** The order of a child within its parent. */
     readonly index: number
 }
 
@@ -26,7 +26,7 @@ export type Operand = {
 /**
  * The outcome of parsing.
  */
-export type Outcome = {
+export type ParsingOutcome = {
     /** The original source code. */
     readonly sourceCode: string,
 
@@ -37,7 +37,7 @@ export type Outcome = {
     readonly model: Expr,
 
     /** Tree structure defining the AST. */
-    readonly _operation_operand_: CompositeTree<OperationExpr, Expr, Operand>
+    readonly _parent_child_: CompositeTree<CompositeExpr, Expr, ChildIndex>
 }
 
 //=====================================================================================================================
@@ -46,19 +46,19 @@ export type Outcome = {
  * Parses a top level expression from a scan result.
  * @param scanResult the tokens from the scanner.
  */
-export function parseExpression(scanResult: PriorOutcome): Outcome {
+export function parseExpression(scanResult: PriorOutcome): ParsingOutcome {
 
-    const _operation_operand_ = new MutableCompositeTree<OperationExpr, Expr, Operand>()
+    const _parent_child_ = new MutableCompositeTree<CompositeExpr, Expr, ChildIndex>()
 
-    const parser = new Parser(scanResult, _operation_operand_)
+    const parser = new Parser(scanResult, _parent_child_)
 
     const model = parser.parseExprBindingPower(0)
 
     return {
-        sourceCode: scanResult.SourceCode,
-        newLineOffsets: scanResult.NewLineOffsets,
+        sourceCode: scanResult.sourceCode,
+        newLineOffsets: scanResult.newLineOffsets,
         model,
-        _operation_operand_: _operation_operand_.freeze()
+        _parent_child_: _parent_child_.freeze()
     }
 
 }
@@ -77,15 +77,15 @@ export function parseExpression(scanResult: PriorOutcome): Outcome {
 //=====================================================================================================================
 
 class Parser {
-    private readonly _operation_operand_: MutableCompositeTree<OperationExpr, Expr, Operand>
+    private readonly _parent_child_: MutableCompositeTree<CompositeExpr, Expr, ChildIndex>
     private readonly sourceCode: string
     private readonly tokens: Token[]
     private tokensIndex: number
 
-    constructor(scanResult: PriorOutcome, operation_operand: MutableCompositeTree<OperationExpr, Expr, Operand>) {
-        this._operation_operand_ = operation_operand
-        this.sourceCode = scanResult.SourceCode
-        this.tokens = scanResult.Tokens
+    constructor(scanResult: PriorOutcome, _parent_child_: MutableCompositeTree<CompositeExpr, Expr, ChildIndex>) {
+        this._parent_child_ = _parent_child_
+        this.sourceCode = scanResult.sourceCode
+        this.tokens = scanResult.tokens
         this.tokensIndex = 0
     }
 
@@ -160,18 +160,18 @@ class Parser {
      * @private
      */
     #makeOperationExpr(
-        tag: OperationExprTag,
+        tag: CompositeExprTag,
         sourcePos: SourcePos,
         operands: Expr[]
-    ): OperationExpr {
-        const result: OperationExpr = {
+    ): CompositeExpr {
+        const result: CompositeExpr = {
             key: Symbol(),
             tag,
             sourcePos
         }
 
         operands.forEach((operand, index) => {
-            this._operation_operand_.join(result, operand, {index})
+            this._parent_child_.join(result, operand, {index})
         })
 
         return result

@@ -4,7 +4,7 @@
 //
 
 import {type Keyed} from "./Keyed";
-import {type HomogeneousEdge} from "./Edges";
+import {type Edge} from "./Edges";
 
 //=====================================================================================================================
 
@@ -15,7 +15,7 @@ export interface Tree<Vertex extends Keyed, EdgeProperties> {
      * @param vertex the vertex with an incoming edge
      * @param callback the function to call with the edge
      */
-    forEachIncomingEdge(vertex: Vertex, callback: (edge: HomogeneousEdge<Vertex, EdgeProperties>) => void): void
+    forEachIncomingEdge(vertex: Vertex, callback: (edge: Edge<Vertex, EdgeProperties>) => void): void
 
     /**
      * Calls the given call back for the adjacent vertex with an edge coming into the given vertex (if there
@@ -30,7 +30,7 @@ export interface Tree<Vertex extends Keyed, EdgeProperties> {
      * @param vertex the vertex with outgoing edges
      * @param callback the function to call with each edge
      */
-    forEachOutgoingEdge(vertex: Vertex, callback: (edge: HomogeneousEdge<Vertex, EdgeProperties>) => void): void
+    forEachOutgoingEdge(vertex: Vertex, callback: (edge: Edge<Vertex, EdgeProperties>) => void): void
 
     /**
      * Calls the given call back for each adjacent vertex joined by an edge going out of the given vertex.
@@ -43,7 +43,7 @@ export interface Tree<Vertex extends Keyed, EdgeProperties> {
      * Tests whether a given edge belongs to this graph.
      * @param edge the edge to check
      */
-    hasEdge(edge: HomogeneousEdge<Vertex, EdgeProperties>): boolean
+    hasEdge(edge: Edge<Vertex, EdgeProperties>): boolean
 
     /**
      * Tests whether a given vertex belongs to this graph.
@@ -88,8 +88,8 @@ export class MutableTree<Vertex extends Keyed, EdgeProperties>
     implements Tree<Vertex, EdgeProperties> {
 
     private edgeCount: number
-    private readonly edgeIn: Map<VertexKey, HomogeneousEdge<Vertex, EdgeProperties>>
-    private readonly edgesOut: Map<VertexKey, HomogeneousEdge<Vertex, EdgeProperties>[]>
+    private readonly edgeIn: Map<VertexKey, Edge<Vertex, EdgeProperties>>
+    private readonly edgesOut: Map<VertexKey, Edge<Vertex, EdgeProperties>[]>
     private readonly vertices: Map<VertexKey, Vertex>
 
     constructor() {
@@ -99,7 +99,7 @@ export class MutableTree<Vertex extends Keyed, EdgeProperties>
         this.vertices = new Map()
     }
 
-    forEachIncomingEdge(vertex: Vertex, callback: (edge: HomogeneousEdge<Vertex, EdgeProperties>) => void) {
+    forEachIncomingEdge(vertex: Vertex, callback: (edge: Edge<Vertex, EdgeProperties>) => void) {
         const edgeIn = this.edgeIn.get(vertex.key)
         if (edgeIn) {
             callback(edgeIn)
@@ -114,7 +114,7 @@ export class MutableTree<Vertex extends Keyed, EdgeProperties>
         })
     }
 
-    forEachOutgoingEdge(vertex: Vertex, callback: (edge: HomogeneousEdge<Vertex, EdgeProperties>) => void) {
+    forEachOutgoingEdge(vertex: Vertex, callback: (edge: Edge<Vertex, EdgeProperties>) => void) {
         const edgesOut = this.edgesOut.get(vertex.key)
         if (edgesOut) {
             edgesOut.forEach(callback)
@@ -139,7 +139,7 @@ export class MutableTree<Vertex extends Keyed, EdgeProperties>
         return this
     }
 
-    hasEdge(edge: HomogeneousEdge<Vertex, EdgeProperties>): boolean {
+    hasEdge(edge: Edge<Vertex, EdgeProperties>): boolean {
         const head = edge.head
         const tail = edge.tail
         return this.hasVertex(tail) && this.hasVertex(head) &&
@@ -184,7 +184,7 @@ export class MutableTree<Vertex extends Keyed, EdgeProperties>
      * @param head the vertex at the head of the new edge
      * @param edgeProperties the additional properties of the new edge
      */
-    join(tail: Vertex, head: Vertex, edgeProperties: EdgeProperties): HomogeneousEdge<Vertex, EdgeProperties> {
+    join(tail: Vertex, head: Vertex, edgeProperties: EdgeProperties): Edge<Vertex, EdgeProperties> {
         if (head === tail) {
             throw Error("Self loops not allowed.")
         }
@@ -195,7 +195,7 @@ export class MutableTree<Vertex extends Keyed, EdgeProperties>
         this.#include(tail)
         this.#include(head)
 
-        const result: HomogeneousEdge<Vertex, EdgeProperties> = {
+        const result: Edge<Vertex, EdgeProperties> = {
             key: Symbol(),
             tail,
             head,
