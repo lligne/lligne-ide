@@ -84,6 +84,13 @@ export function some<T>(value: T): Some<T> {
     return {tag: 'Option#Some', value}
 }
 
+export function someOrNone<T>(value: T|undefined): Option<T> {
+    if (value) {
+        return some(value)
+    }
+    return none()
+}
+
 export function toArray<T>(option: Option<T>): T[] {
     switch (option.tag) {
         case 'Option#None':

@@ -9,7 +9,8 @@ import type {Token} from "../scanning/Token"
 import type {TokenType} from "../scanning/TokenType"
 import {SourcePos} from "../util/SourcePos"
 import {type CompositeExprTag} from "./Expressions"
-import {type CompositeTree, MutableCompositeTree} from "../../graphs/CompositeTree";
+import {type CompositeTree} from "../../graphs/CompositeTree";
+import {MutableCompositeTree} from "../../graphs/impl/MutableCompositeTree";
 
 //=====================================================================================================================
 

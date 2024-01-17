@@ -26,3 +26,15 @@ export type HeteroEdge<TailVertex, HeadVertex, EdgeProperties> =
 export type Edge<Vertex, EdgeProperties> = HeteroEdge<Vertex, Vertex, EdgeProperties>
 
 //=====================================================================================================================
+
+/**
+ * Tests whether an edge is a self loop.
+ * @param edge the edge to check.
+ */
+export function isSelfLoop<Vertex, EdgeProperties>(edge: Edge<Vertex, EdgeProperties>): boolean {
+    return edge.tail === edge.head
+}
+
+//=====================================================================================================================
+
+
