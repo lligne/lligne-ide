@@ -73,13 +73,14 @@ export function structureRecords(parsingOutcome: PriorOutcome): Outcome {
 //=====================================================================================================================
 
 class Structurer {
-    private readonly _operation_operand_: CompositeTree<CompositeExpr, Expr, ChildIndex>
-    private readonly sourceCode: string
+    private readonly model: Expr
+    private readonly _parent_child_: CompositeTree<CompositeExpr, Expr, ChildIndex>
+    private readonly _recordField_defaultValue_: MutableHeteroGraph1to1<RecordField, Expr, {}>
     private readonly _recordField_name_: MutableHeteroGraph1to1<RecordField, IdentifierExpr, {}>
+    private readonly _recordField_record_: MutableHeteroGraph1to1<RecordField, CompositeExpr & { tag: '#RecordExpr' }, {}>
     private readonly _recordField_type_: MutableHeteroGraph1to1<RecordField, Expr, {}>
     private readonly _recordField_value_: MutableHeteroGraph1to1<RecordField, Expr, {}>
-    private readonly _recordField_defaultValue_: MutableHeteroGraph1to1<RecordField, Expr, {}>
-    private readonly _recordField_record_: MutableHeteroGraph1to1<RecordField, CompositeExpr & { tag: '#RecordExpr' }, {}>
+    private readonly sourceCode: string
 
     constructor(
         parsingOutcome: PriorOutcome,
@@ -89,8 +90,9 @@ class Structurer {
         _recordField_defaultValue_: MutableHeteroGraph1to1<RecordField, Expr, {}>,
         _recordField_record_: MutableHeteroGraph1to1<RecordField, CompositeExpr & { tag: '#RecordExpr' }, {}>
     ) {
+        this.model = parsingOutcome.model
         this.sourceCode = parsingOutcome.sourceCode
-        this._operation_operand_ = parsingOutcome._parent_child_
+        this._parent_child_ = parsingOutcome._parent_child_
         this._recordField_name_ = _recordField_name_
         this._recordField_type_ = _recordField_type_
         this._recordField_value_ = _recordField_value_
@@ -99,7 +101,23 @@ class Structurer {
     }
 
     structureRecords() {
-        // TODO
+        // Process each record in the graph.
+        this._parent_child_
+            .forEachTailVertex()
+            .matching(expr => expr.tag == '#RecordExpr')
+            .do(recordVertex => {
+                this._parent_child_
+                    .forEachHeadVertex()
+                    .joinedFromVertex(recordVertex)
+                    .do(fieldVertex => {
+                        // Structure Each Field
+                        // - field name
+                        // - type
+                        // - value
+                        // - default value
+                    })
+            })
+
     }
 }
 

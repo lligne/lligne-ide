@@ -1,0 +1,82 @@
+
+mymodule = mod {
+
+    mymath = pkg {
+        f = fun(x:Float64, y: Float64) {
+            z = x*x - y*y
+        }
+
+        Vector = typ {
+            x: Float64,
+            y: Float64,
+            z: Float64
+        }
+
+        origin: Vector = rec {
+            x = 0.0,
+            y = 0.0,
+            z = 0.0
+        }
+
+        pi = 3.14159
+    }
+
+    mystrings = pkg {
+        greeting = "Hello"
+    }
+
+}
+
+mod mymodule = {
+
+    pkg mymath = {
+        fun f(x:Float64, y: Float64) =
+            x*x - y*y
+
+        typ Vector = {
+            const x: Float64,
+            const y: Float64,
+            const z: Float64
+        }
+
+        val origin: Vector = {
+            val x = 0.0,
+            val y = 0.0,
+            val z = 0.0
+        }
+
+        val pi = 3.14159
+    }
+
+    pkg mystrings = {
+        val greeting = "Hello"
+    }
+
+}
+
+
+mod lligne.util = {
+
+    typ None = {
+        val tag = 'Option#None'
+    }
+
+    typ Some(T:type) = {
+        val tag = 'Option#Some',
+        val value: T
+    }
+
+    typ Option(T:type) =
+        None
+        | Some(T)
+
+    fun areEqual(T:type, option1: Option(T), option2: Option(T)): boolean =
+        option1.tag == option2.tag and
+        (option1.tag == 'Option#None' or option1.value == option2.value)
+
+    fun filter(T: type, option: Option(T), predicate: (value: T) -> boolean): Option(T) =
+        option when option.tag == 'Option#Some' and predicate(option.value)
+        | None
+
+}
+

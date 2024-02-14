@@ -5,7 +5,7 @@
   import {
     filterLeadingTrailingDocumentation
   } from "../lligne/code/scanning/tokenfiltering/LeadingTrailingDocumentationFilter";
-  import {parseExpression} from "../lligne/code/parsing/Parser";
+  import {parseExpression, toJson, toSExpression} from "../lligne/code/parsing/Parser";
 
   import {EditorState} from "@codemirror/state"
   import {EditorView, keymap} from "@codemirror/view"
@@ -26,6 +26,7 @@
   });
 
   let parseMsg = ""
+  let parseJson = ""
 
   function parse_from_repl(){
     let sourceCode = editorView.state.doc.toString()
@@ -38,6 +39,8 @@
     const parseResult = parseExpression(scanResult)
 
     parseMsg = "Parsed " + (parseResult.newLineOffsets.length+1) + " lines of code.";
+
+    parseJson = toSExpression(parseResult) // toJson(parseResult)
   }
 </script>
 
@@ -47,6 +50,7 @@
   <div id="repl-box"></div>
   <button on:click={parse_from_repl}>Parse</button>
   <p>{parseMsg}</p>
+  <pre>{parseJson}</pre>
 
 </div>
 

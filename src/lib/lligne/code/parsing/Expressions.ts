@@ -20,20 +20,26 @@ export type BooleanLiteralExpr = Keyed & {
 //=====================================================================================================================
 
 /**
- * Enumeration of built-in fundamental type names.
+ * A built-in fundamental type name expression.
  */
-export type BuiltInTypeExprTag =
-    | '#BuiltInTypeBooleanExpr'
-    | '#BuiltInTypeInt64Expr'
-    | '#BuiltInTypeFloat64Expr'
-    | '#BuiltInTypeStringExpr'
+let builtInTypeExprTagObj = {
+    '#BuiltInTypeBooleanExpr': true,
+    '#BuiltInTypeInt64Expr': true,
+    '#BuiltInTypeFloat64Expr': true,
+    '#BuiltInTypeStringExpr': true
+}
 
-/**
- * A fundamental type name expression.
- */
+type BuiltInTypeExprTag = keyof typeof builtInTypeExprTagObj
+
+let builtInTypeExprTagSet = new Set(Object.keys(builtInTypeExprTagObj))
+
 export type BuiltInTypeExpr = Keyed & {
     readonly tag: BuiltInTypeExprTag,
     readonly sourcePos: SourcePos
+}
+
+export function isBuiltInTypeExpr(expr: Expr): expr is BuiltInTypeExpr {
+    return builtInTypeExprTagSet.has(expr.tag)
 }
 
 //=====================================================================================================================
@@ -41,17 +47,23 @@ export type BuiltInTypeExpr = Keyed & {
 /**
  * Leading or trailing documentation.
  */
-export type DocumentationExprTag =
-    | '#LeadingDocumentationExpr'
-    | '#TrailingDocumentationExpr'
+let documentationExprTagObj = {
+    '#LeadingDocumentationExpr': true,
+    '#TrailingDocumentationExpr': true
+}
 
-/**
- * A leading or trailing documentation comment.
- */
+export type DocumentationExprTag = keyof typeof documentationExprTagObj
+
+let documentationExprTagSet = new Set(Object.keys(documentationExprTagObj))
+
 export type DocumentationExpr = Keyed & {
-    readonly tag: DocumentationExprTag,
+    readonly tag: DocumentationExprTag
     readonly sourcePos: SourcePos,
     readonly text: string
+}
+
+export function isDocumentationExpr(expr: Expr): expr is DocumentationExpr {
+    return documentationExprTagSet.has(expr.tag)
 }
 
 //=====================================================================================================================
@@ -70,7 +82,7 @@ export type EmptyExpr = Keyed & {
  * A single floating point literal.
  */
 export type Float64LiteralExpr = Keyed & {
-    readonly tag: '#Float64Expr',
+    readonly tag: '#Float64LiteralExpr',
     readonly sourcePos: SourcePos,
     readonly value: number
 }
@@ -102,85 +114,170 @@ export type Int64LiteralExpr = Keyed & {
 /**
  * Enumeration of operators linking a left hand side and a right hand side.
  */
-export type BinaryOperationExprTag =
-    | '#AdditionExpr'
-    | '#DivisionExpr'
-    | '#DocumentExpr'
-    | '#EqualsExpr'
-    | '#FieldReferenceExpr'
-    | '#FunctionArrowExpr'
-    | '#FunctionCallExpr'
-    | '#GreaterThanExpr'
-    | '#GreaterThanOrEqualsExpr'
-    | '#InExpr'
-    | '#IntersectExpr'
-    | '#IntersectAssignValueExpr'
-    | '#IntersectDefaultValueExpr'
-    | '#IntersectLowPrecedenceExpr'
-    | '#IsExpr'
-    | '#LessThanExpr'
-    | '#LessThanOrEqualsExpr'
-    | '#LogicalAndExpr'
-    | '#LogicalOrExpr'
-    | '#MatchExpr'
-    | '#MultiplicationExpr'
-    | '#NotEqualsExpr'
-    | '#NotMatchExpr'
-    | '#QualificationExpr'
-    | '#RangeExpr'
-    | '#SubtractionExpr'
-    | '#UnionExpr'
-    | '#WhenExpr'
-    | '#WhereExpr'
+let binaryOperationExprTagObj = {
+    '#AdditionExpr': true,
+    '#DivisionExpr': true,
+    '#DocumentExpr': true,
+    '#EqualsExpr': true,
+    '#FieldReferenceExpr': true,
+    '#FunctionArrowExpr': true,
+    '#FunctionCallExpr': true,
+    '#GreaterThanExpr': true,
+    '#GreaterThanOrEqualsExpr': true,
+    '#InExpr': true,
+    '#IntersectExpr': true,
+    '#IntersectAssignValueExpr': true,
+    '#IntersectDefaultValueExpr': true,
+    '#IntersectLowPrecedenceExpr': true,
+    '#IsExpr': true,
+    '#LessThanExpr': true,
+    '#LessThanOrEqualsExpr': true,
+    '#LogicalAndExpr': true,
+    '#LogicalOrExpr': true,
+    '#MatchExpr': true,
+    '#MultiplicationExpr': true,
+    '#NotEqualsExpr': true,
+    '#NotMatchExpr': true,
+    '#QualificationExpr': true,
+    '#RangeExpr': true,
+    '#SubtractionExpr': true,
+    '#UnionExpr': true,
+    '#WhenExpr': true,
+    '#WhereExpr': true,
+}
+
+export type BinaryOperationExprTag = keyof typeof binaryOperationExprTagObj
+
+let binaryOperationExprTagSet = new Set(Object.keys(binaryOperationExprTagObj))
+
+export type BinaryOperationExpr = Keyed & {
+    readonly tag: BinaryOperationExprTag,
+    readonly sourcePos: SourcePos
+}
+
+export function isBinaryOperationExpr(expr: Expr): expr is BinaryOperationExpr {
+    return binaryOperationExprTagSet.has(expr.tag)
+}
+
+//=====================================================================================================================
 
 /**
  * Enumeration of expressions comprised of an arbitrary number of child expressions.
  */
-export type SequenceExprTag =
-    | '#ArrayLiteralExpr'
-    | '#FunctionArgumentsExpr'
-    | '#RecordExpr'
+let sequenceExprTagObj = {
+    '#ArrayLiteralExpr': true,
+    '#FunctionArgumentsExpr': true,
+    '#RecordExpr': true
+}
+
+export type SequenceExprTag = keyof typeof sequenceExprTagObj
+
+let sequenceExprTagSet = new Set(Object.keys(sequenceExprTagObj))
+
+export type SequenceExpr = Keyed & {
+    readonly tag: SequenceExprTag,
+    readonly sourcePos: SourcePos
+}
+
+export function isSequenceExpr(expr: Expr): expr is SequenceExpr {
+    return sequenceExprTagSet.has(expr.tag)
+}
+
+//=====================================================================================================================
 
 /**
  * Top level for a single source file.
  */
-export type SourceFileExprTag =
-    | '#SourceFileExpr'
+let sourceFileExprTagObj = {
+    '#SourceFileExpr': true
+}
+
+export type SourceFileExprTag = keyof typeof sourceFileExprTagObj
+
+let sourceFileExprTagSet = new Set(Object.keys(sourceFileExprTagObj))
+
+export type SourceFileExpr = Keyed & {
+    readonly tag: SourceFileExprTag,
+    readonly sourcePos: SourcePos
+}
+
+export function isSourceFileExpr(expr: Expr): expr is SourceFileExpr {
+    return sourceFileExprTagSet.has(expr.tag)
+}
+
+//=====================================================================================================================
 
 /**
  * Top level for all source files in a compilation.
  */
-export type TopLevelExprTag =
-    | '#TopLevelExpr'
+let topLevelExprTagObj = {
+    '#TopLevelExpr': true
+}
+
+export type TopLevelExprTag = keyof typeof topLevelExprTagObj
+
+let topLevelExprTagSet = new Set(Object.keys(topLevelExprTagObj))
+
+export type TopLevelExpr = Keyed & {
+    readonly tag: TopLevelExprTag,
+    readonly sourcePos: SourcePos
+}
+
+export function isTopLevelExpr(expr: Expr): expr is TopLevelExpr {
+    return topLevelExprTagSet.has(expr.tag)
+}
+
+//=====================================================================================================================
 
 /**
  * Enumeration of operations with one operand (linked by the operands tree).
  */
-export type UnaryOperationExprTag =
-    | '#AnnotationExpr'
-    | '#LogicalNotExpr'
-    | '#NegationExpr'
-    | '#OptionalExpr'
-    | '#ParenthesizedExpr'
-    | '#TagExpr'
+let unaryOperationExprTagObj = {
+    '#AnnotationExpr': true,
+    '#LogicalNotExpr': true,
+    '#NegationExpr': true,
+    '#OptionalExpr': true,
+    '#ParenthesizedExpr': true,
+    '#TagExpr': true,
+}
+
+export type UnaryOperationExprTag = keyof typeof unaryOperationExprTagObj
+
+let unaryOperationExprTagSet = new Set(Object.keys(unaryOperationExprTagObj))
+
+export type UnaryOperationExpr = Keyed & {
+    readonly tag: UnaryOperationExprTag,
+    readonly sourcePos: SourcePos
+}
+
+export function isUnaryOperationExpr(expr: Expr): expr is UnaryOperationExpr {
+    return unaryOperationExprTagSet.has(expr.tag)
+}
+
+//=====================================================================================================================
 
 /**
  * Combined enumeration of the above operation types.
  */
-export type CompositeExprTag =
-    | BinaryOperationExprTag
-    | SequenceExprTag
-    | SourceFileExprTag
-    | TopLevelExprTag
-    | UnaryOperationExprTag
-    ;
+let compositeExprTagObj = {
+    ...binaryOperationExprTagObj,
+    ...sequenceExprTagObj,
+    ...sourceFileExprTagObj,
+    ...topLevelExprTagObj,
+    ...unaryOperationExprTagObj
+}
 
-/**
- * A generic operation involving one or more operands linked in a companion tree graph.
- */
+export type CompositeExprTag = keyof typeof compositeExprTagObj
+
+let compositeExprTagSet = new Set(Object.keys(compositeExprTagObj))
+
 export type CompositeExpr = Keyed & {
     readonly tag: CompositeExprTag,
     readonly sourcePos: SourcePos
+}
+
+export function isCompositeExpr(expr: Expr): expr is CompositeExpr {
+    return compositeExprTagSet.has(expr.tag)
 }
 
 //=====================================================================================================================
@@ -188,21 +285,27 @@ export type CompositeExpr = Keyed & {
 /**
  * String literals distinguished by start/stop delimiters.
  */
-export type StringLiteralExprTag =
-    | '#SingleQuotedStringExpr'
-    | '#DoubleQuotedStringExpr'
-    | '#BackTickedStringExpr'
-    | '#SingleQuotedStringBlockExpr'
-    | '#DoubleQuotedStringBlockExpr'
-    | '#BackTickedStringBlockExpr'
+let stringLiteralExprTagObj = {
+    '#SingleQuotedStringExpr': true,
+    '#DoubleQuotedStringExpr': true,
+    '#BackTickedStringExpr': true,
+    '#SingleQuotedStringBlockExpr': true,
+    '#DoubleQuotedStringBlockExpr': true,
+    '#BackTickedStringBlockExpr': true,
+}
 
-/**
- * A single text literal.
- */
+export type StringLiteralExprTag = keyof typeof stringLiteralExprTagObj
+
+let stringLiteralExprTagSet = new Set(Object.keys(stringLiteralExprTagObj))
+
 export type StringLiteralExpr = Keyed & {
     readonly tag: StringLiteralExprTag,
     readonly sourcePos: SourcePos,
     readonly value: string
+}
+
+export function isStringLiteralExpr(expr: Expr): expr is StringLiteralExpr {
+    return stringLiteralExprTagSet.has(expr.tag)
 }
 
 //=====================================================================================================================

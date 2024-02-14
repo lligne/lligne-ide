@@ -8,6 +8,7 @@ import {type CompositeTree} from "../CompositeTree";
 import {MutableHeteroGraph1toN} from "./MutableHeteroGraph1toN";
 import {type Option} from "../../util/Option";
 import {type HeteroEdge} from "../Edges";
+import {type HeadVertexTraversal, type HeteroEdgeTraversal, type TailVertexTraversal} from "../HeteroGraph";
 
 //=====================================================================================================================
 
@@ -21,6 +22,14 @@ export class MutableCompositeTree<ParentVertex extends ChildVertex, ChildVertex 
 
     constructor() {
         this.graph = new MutableHeteroGraph1toN<ParentVertex, ChildVertex, EdgeProperties>()
+    }
+
+    forEachEdge(): HeteroEdgeTraversal<ParentVertex, ChildVertex, EdgeProperties> {
+        return this.graph.forEachEdge()
+    }
+
+    forEachHeadVertex(): HeadVertexTraversal<ParentVertex, ChildVertex, EdgeProperties> {
+        return this.graph.forEachHeadVertex()
     }
 
     forEachIncomingEdge(
@@ -45,6 +54,10 @@ export class MutableCompositeTree<ParentVertex extends ChildVertex, ChildVertex 
         callback: (vertex: ChildVertex) => void
     ) {
         return this.graph.forEachOutJoinedVertex(callback)
+    }
+
+    forEachTailVertex(): TailVertexTraversal<ParentVertex, ChildVertex, EdgeProperties> {
+        return this.graph.forEachTailVertex()
     }
 
     /**

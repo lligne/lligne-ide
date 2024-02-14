@@ -15,20 +15,22 @@ type VertexKey = symbol
 //=====================================================================================================================
 
 /**
- * Mutable implementation of HeteroGraph with at most one tail vertex per head vertex and vice versa.
+ * Mutable implementation of HeteroGraph.
  */
-export class MutableHeteroGraph1to1<TailVertex extends Keyed, HeadVertex extends Keyed, EdgeProperties>
+export class MutableHeteroGraphNtoN<TailVertex extends Keyed, HeadVertex extends Keyed, EdgeProperties>
     implements HeteroGraph<TailVertex, HeadVertex, EdgeProperties> {
 
-    private readonly edgeIn: Map<VertexKey, HeteroEdge<TailVertex, HeadVertex, EdgeProperties>>
-    private readonly edgeOut: Map<VertexKey, HeteroEdge<TailVertex, HeadVertex, EdgeProperties>>
+    private edgeCount: number
+    private readonly edgesIn: Map<VertexKey, HeteroEdge<TailVertex, HeadVertex, EdgeProperties>[]>
+    private readonly edgesOut: Map<VertexKey, HeteroEdge<TailVertex, HeadVertex, EdgeProperties>[]>
     private readonly headVertices: Map<VertexKey, HeadVertex>
     private readonly tailVertices: Map<VertexKey, TailVertex>
     private vertexCount: number
 
     constructor() {
-        this.edgeIn = new Map()
-        this.edgeOut = new Map()
+        this.edgeCount = 0
+        this.edgesIn = new Map()
+        this.edgesOut = new Map()
         this.headVertices = new Map()
         this.tailVertices = new Map()
         this.vertexCount = 0
@@ -56,9 +58,9 @@ export class MutableHeteroGraph1to1<TailVertex extends Keyed, HeadVertex extends
         callback: (edge: HeteroEdge<TailVertex, HeadVertex, EdgeProperties>) => void
     ) {
         return (vertex: HeadVertex) => {
-            const edgeIn = this.edgeIn.get(vertex.key)
-            if (edgeIn) {
-                callback(edgeIn)
+            const edgesIn = this.edgesIn.get(vertex.key)
+            if (edgesIn) {
+                edgesIn.forEach(callback)
             } else if (!this.hasHeadVertex(vertex)) {
                 throw Error("Vertex not present in this graph.")
             }
@@ -77,9 +79,9 @@ export class MutableHeteroGraph1to1<TailVertex extends Keyed, HeadVertex extends
         callback: (edge: HeteroEdge<TailVertex, HeadVertex, EdgeProperties>) => void
     ) {
         return (vertex: TailVertex) => {
-            const edgeOut = this.edgeOut.get(vertex.key)
-            if (edgeOut) {
-                callback(edgeOut)
+            const edgesOut = this.edgesOut.get(vertex.key)
+            if (edgesOut) {
+                edgesOut.forEach(callback)
             } else if (!this.hasTailVertex(vertex)) {
                 throw Error("Vertex not present in this graph.")
             }
@@ -98,8 +100,8 @@ export class MutableHeteroGraph1to1<TailVertex extends Keyed, HeadVertex extends
      * Freezes the underlying graph implementation to prevent further mutation.
      */
     freeze(): HeteroGraph<TailVertex, HeadVertex, EdgeProperties> {
-        Object.freeze(this.edgeIn)
-        Object.freeze(this.edgeOut)
+        Object.freeze(this.edgesIn)
+        Object.freeze(this.edgesOut)
         Object.freeze(this.tailVertices)
         Object.freeze(this.headVertices)
         return this
@@ -109,8 +111,8 @@ export class MutableHeteroGraph1to1<TailVertex extends Keyed, HeadVertex extends
         const head = edge.head
         const tail = edge.tail
         return this.hasTailVertex(tail) && this.hasHeadVertex(head) &&
-            this.edgeIn.get(head.key) === edge &&
-            this.edgeOut.get(tail.key) === edge
+            this.edgesIn.get(head.key)!.includes(edge) &&
+            this.edgesOut.get(tail.key)!.includes(edge)
     }
 
     hasHeadVertex(vertex: HeadVertex): boolean {
@@ -146,6 +148,7 @@ export class MutableHeteroGraph1to1<TailVertex extends Keyed, HeadVertex extends
     #includeTail(vertex: TailVertex): TailVertex {
         if (!this.tailVertices.get(vertex.key)) {
             this.tailVertices.set(vertex.key, vertex)
+            this.edgesOut.set(vertex.key, [])
             if (!this.headVertices.get(vertex.key)) {
                 this.vertexCount += 1
             }
@@ -154,7 +157,7 @@ export class MutableHeteroGraph1to1<TailVertex extends Keyed, HeadVertex extends
     }
 
     inDegree(vertex: HeadVertex): number {
-        return this.edgeIn.get(vertex.key) ? 1 : 0
+        return this.edgesIn.get(vertex.key)?.length ?? 0
     }
 
     /**
@@ -171,12 +174,6 @@ export class MutableHeteroGraph1to1<TailVertex extends Keyed, HeadVertex extends
         if (head as any === tail as any) {
             throw Error("Self loops not allowed.")
         }
-        if (this.edgeIn.get(head.key)) {
-            throw Error("Exceeded maximum allowed in-degree (1).")
-        }
-        if (this.edgeOut.get(tail.key)) {
-            throw Error("Exceeded maximum allowed out-degree (1).")
-        }
 
         this.#includeTail(tail)
         this.#includeHead(head)
@@ -188,8 +185,9 @@ export class MutableHeteroGraph1to1<TailVertex extends Keyed, HeadVertex extends
             ...edgeProperties
         }
 
-        this.edgeOut.set(tail.key, result)
-        this.edgeIn.set(head.key, result)
+        this.edgeCount += 1
+        this.edgesOut.get(tail.key)!.push(result)
+        this.edgesIn.get(head.key)!.push(result)
 
         return result
     }
@@ -199,11 +197,11 @@ export class MutableHeteroGraph1to1<TailVertex extends Keyed, HeadVertex extends
     }
 
     outDegree(vertex: TailVertex): number {
-        return this.edgeOut.get(vertex.key) ? 1 : 0
+        return this.edgesOut.get(vertex.key)?.length ?? 0
     }
 
     get size(): number {
-        return this.edgeIn.size
+        return this.edgeCount
     }
 
     tailVertexWithKey(key: symbol): Option<TailVertex> {

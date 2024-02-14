@@ -1,10 +1,10 @@
 //
-// (C) Copyright 2023 Martin E. Nordberg III
+// (C) Copyright 2023-2024 Martin E. Nordberg III
 // Apache 2.0 License
 //
 
 import {type Keyed} from "../Keyed"
-import {type HeteroGraph} from "../HeteroGraph"
+import {type HeadVertexTraversal, type HeteroEdgeTraversal, type HeteroGraph, type TailVertexTraversal} from "../HeteroGraph"
 import {someOrNone, type Option} from "../../util/Option";
 import {type HeteroEdge} from "../Edges";
 
@@ -34,6 +34,14 @@ export class MutableHeteroGraph1toN<TailVertex extends Keyed, HeadVertex extends
         this.headVertices = new Map()
         this.tailVertices = new Map()
         this.vertexCount = 0
+    }
+
+    forEachEdge(): HeteroEdgeTraversal<TailVertex, HeadVertex, EdgeProperties> {
+        throw new Error("Not yet implemented")
+    }
+
+    forEachHeadVertex(): HeadVertexTraversal<TailVertex, HeadVertex, EdgeProperties> {
+        throw new Error("Not yet implemented")
     }
 
     forEachIncomingEdge(
@@ -76,6 +84,10 @@ export class MutableHeteroGraph1toN<TailVertex extends Keyed, HeadVertex extends
         return this.forEachOutgoingEdge(edge => {
             callback(edge.head)
         })
+    }
+
+    forEachTailVertex(): TailVertexTraversal<TailVertex, HeadVertex, EdgeProperties> {
+        throw new Error("Not yet implemented")
     }
 
     /**

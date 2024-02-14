@@ -8,7 +8,7 @@ import type {Outcome as PriorOutcome} from "../scanning/Scanner"
 import type {Token} from "../scanning/Token"
 import type {TokenType} from "../scanning/TokenType"
 import {SourcePos} from "../util/SourcePos"
-import {type CompositeExprTag} from "./Expressions"
+import {type CompositeExprTag, isCompositeExpr} from "./Expressions"
 import {type CompositeTree} from "../../graphs/CompositeTree";
 import {MutableCompositeTree} from "../../graphs/impl/MutableCompositeTree";
 
@@ -39,6 +39,118 @@ export type ParsingOutcome = {
 
     /** Tree structure defining the AST. */
     readonly _parent_child_: CompositeTree<CompositeExpr, Expr, ChildIndex>
+}
+
+//=====================================================================================================================
+
+/**
+ * Generates a JSON representation of the AST for debugging purposes.
+ * @param parseResult the outcome of parsing
+ */
+export function toJson(parseResult: ParsingOutcome): string {
+    return JSON.stringify(toJsonRec(parseResult.model, parseResult._parent_child_), null, 2)
+}
+
+//=====================================================================================================================
+
+/**
+ * Recursively generates a JSON representation of the AST for debugging purposes.
+ * @param model the AST node to start from
+ * @param _parent_child_ the graph of parent-child links
+ */
+function toJsonRec(model: Expr, _parent_child_: CompositeTree<CompositeExpr, Expr, ChildIndex>): object {
+
+    if (isCompositeExpr(model)) {
+        let children: object[] = []
+        _parent_child_.forEachOutJoinedVertex(v => children.push(toJsonRec(v, _parent_child_)))(model)
+
+        // TODO instead: fluent API
+        // let children = _parent_child_.forEachHeadVertex().joinedFromVertex(model).map(
+        //     v => toJsonRec(v, _parent_child_)
+        // )
+
+        return {...model, children}
+    }
+
+    return {...model}
+}
+
+//=====================================================================================================================
+
+/**
+ * Generates an S-Expression representation of the AST for debugging purposes.
+ * @param parseResult the outcome of parsing
+ */
+export function toSExpression(parseResult: ParsingOutcome): string {
+    return toSExpressionRec(parseResult.model, parseResult._parent_child_, "")
+}
+
+//=====================================================================================================================
+
+/**
+ * Recursively generates a JSON representation of the AST for debugging purposes.
+ * @param model the AST node to start from
+ * @param _parent_child_ the graph of parent-child links
+ * @param indent the characters of indentation for the current level
+ */
+function toSExpressionRec(model: Expr, _parent_child_: CompositeTree<CompositeExpr, Expr, ChildIndex>, indent: string): string {
+
+    let result = getBaseSExpression(model, indent)
+
+    if (isCompositeExpr(model)) {
+        _parent_child_.forEachOutJoinedVertex(
+            v => result = result + toSExpressionRec(v, _parent_child_, indent + "  ")
+        )(model)
+
+        // TODO instead: fluent API
+        // let children = _parent_child_.forEachHeadVertex().joinedFromVertex(model).map(
+        //     v => . . .
+        // )
+    }
+
+    return result
+}
+
+function getBaseSExpression(model: Expr, indent: string) {
+    let result = `${model.sourcePos.startOffset}..${model.sourcePos.endOffset}:`.padEnd(12," ")
+
+    result += indent
+    result += `${model.tag}`
+
+    switch (model.tag) {
+        case '#BooleanLiteralExpr':
+            result += ` ${model.value}`
+            break
+        case '#Int64LiteralExpr':
+            result += ` ${model.value}`
+            break
+        case '#Float64LiteralExpr':
+            result += ` ${model.value}`
+            break
+        case '#IdentifierExpr':
+            result += ` ${model.name}`
+            break
+        case '#SingleQuotedStringExpr':
+            result += ` '${model.value}'`
+            break
+        case '#DoubleQuotedStringExpr':
+            result += ` "${model.value}"`
+            break
+        case '#BackTickedStringExpr':
+            result += "\\`" + `${model.value}` + "`"
+            break
+        case '#SingleQuotedStringBlockExpr':
+        case '#DoubleQuotedStringBlockExpr':
+        case '#BackTickedStringBlockExpr':
+            result += ` ${model.value}`
+            break
+        case '#LeadingDocumentationExpr':
+        case '#TrailingDocumentationExpr':
+            result += ` ${model.text}`
+            break
+    }
+
+    return result + "\n"
 }
 
 //=====================================================================================================================
@@ -319,7 +431,7 @@ class Parser {
             case '#TokenTypeFloatingPointLiteral':
                 return {
                     key: Symbol(),
-                    tag: '#Float64Expr',
+                    tag: '#Float64LiteralExpr',
                     sourcePos,
                     value: +sourcePos.getText(this.sourceCode),// TODO: better parsing
                 }

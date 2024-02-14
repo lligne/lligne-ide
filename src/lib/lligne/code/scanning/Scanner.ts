@@ -318,6 +318,8 @@ class Scanner {
 
         while (true) {
 
+            // TODO: handle single line back-ticked string
+
             // Consume to the end of the line.
             while (this.charAhead1 != '\n' && this.charAhead1 != '\0') {
                 this.#advance()
